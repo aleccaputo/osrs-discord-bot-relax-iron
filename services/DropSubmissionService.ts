@@ -1,5 +1,6 @@
 import {Channel, Emoji, Message, MessageReaction, TextChannel} from "discord.js";
 import User from "../models/User";
+import {getUser, modifyPoints} from "./UserService";
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -61,13 +62,12 @@ const processPoints = async (emoji: Emoji, userDiscordId: string, action: Points
     const pointValue = convertEmojiToNumber(emoji);
     if (pointValue) {
         try {
-            const user = await User.findOne({discordId: userDiscordId});
-            if (user) {
-                const newPoints = action === PointsAction.ADD ? user.points + pointValue : Math.max(0, user.points - pointValue);
-                user.points = newPoints;
-                user.save();
-                return user.points;
+            const user = await getUser(userDiscordId);
+            if (!user) {
+                return null;
             }
+            const newPoints = await modifyPoints(user, pointValue, action)
+            return newPoints;
         } catch (e) {
             console.error(e);
         }

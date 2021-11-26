@@ -7,28 +7,32 @@ import dayjs from "dayjs";
 dotenv.config();
 
 ;(async () => {
-    const serverId = process.env.SERVER;
-    const client = new Discord.Client();
+    try {
+        const serverId = process.env.SERVER;
+        const client = new Discord.Client();
 
-    await client.login(process.env.TOKEN);
-    await connect();
+        await client.login(process.env.TOKEN);
+        await connect();
 
-    const server = client.guilds.cache.find(guild => guild.id === serverId);
-    if (server) {
-        const allUsers = await User.find({});
-        const allMembers = await server.members.fetch();
-        for (const member of allMembers.array()) {
-            const existing = allUsers.find(x => x.discordId === member.id);
-            if (!existing) {
-                await new User({
-                    discordId: member.id,
-                    points: 0,
-                    joined: dayjs(member.joinedAt?.toUTCString() ?? new Date().toUTCString()).toISOString()
-                }).save();
+        const server = await client.guilds.fetch(serverId ?? '')
+        if (server) {
+            const allUsers = await User.find({});
+            const allMembers = await server.members.fetch();
+            for (const member of allMembers.array()) {
+                const existing = allUsers.find(x => x.discordId === member.id);
+                if (!existing) {
+                    await new User({
+                        discordId: member.id,
+                        points: 0,
+                        joined: dayjs(member.joinedAt?.toUTCString() ?? new Date().toUTCString()).toISOString()
+                    }).save();
+                }
             }
+            process.exit();
         }
+        console.error("unable to find server");
         process.exit();
+    } catch (e) {
+        console.log(e);
     }
-    console.error("unable to find server");
-    process.exit();
 })();

@@ -10,18 +10,19 @@ import {Rules} from "./services/constants/rules";
 import {ApplicationQuestions} from "./services/constants/application-questions";
 import {AwardQuestions} from "./services/constants/award-questions";
 import {sendQuestions} from "./services/ApplicationService";
-import {parseServerCommand} from "./services/MessageHelpers";
+import {formatDiscordUserTag, parseServerCommand, stripDiscordCharactersFromId} from "./services/MessageHelpers";
 import {ensureUniqueAnswers, sendAwardQuestions} from "./services/CommunityAwardService";
 import {connect} from "./services/DataService";
-import {addMemberToWiseOldMan} from "./services/WiseOldManService";
 import {
     extractMessageInformationAndProcessPoints,
     PointsAction,
     reactWithBasePoints
 } from "./services/DropSubmissionService";
-import {createUser} from "./services/UserService";
+import {createUser, getUser, modifyPoints} from "./services/UserService";
 
 dotenv.config();
+let lastRequestForPointsTime: number | null = null;
+const rateLimitSeconds = 2;
 
 ;(async () => {
     try {
@@ -87,7 +88,6 @@ dotenv.config();
                             if (process.env.NOT_IN_CLAN_ROLE_ID && process.env.RANK_ONE_ID && process.env.VERIFIED_ROLE_ID) {
                                 await guildMember?.roles.add([process.env.RANK_ONE_ID, process.env.VERIFIED_ROLE_ID]);
                                 await guildMember?.roles.remove(process.env.NOT_IN_CLAN_ROLE_ID);
-                                const ign = guildMember?.nickname;
                                 try {
                                     await createUser(guildMember);
                                 } catch (e) {
@@ -96,12 +96,6 @@ dotenv.config();
                                         if (reportingChannel && reportingChannel.isText()) {
                                             await reportingChannel.send(`Unable to add <@${message.author.id}> as a user. Please contact a developer`)
                                         }
-                                    }
-                                }
-                                if (ign) {
-                                    const response = await addMemberToWiseOldMan(ign);
-                                    if (!response) {
-                                        mods.forEach(mod => mod.send(`Unable to add <@${message.author.id}> to wise old man.`));
                                     }
                                 }
                             }
@@ -126,6 +120,34 @@ dotenv.config();
                     if (privateSubmissionsChannel && messageAttachments && privateSubmissionsChannel.isText()) {
                         const privateMessage = await privateSubmissionsChannel.send(`<@${message.author.id}>`, messageAttachments);
                         await reactWithBasePoints(privateMessage);
+                    }
+                } else if (message.channel.id === process.env.REPORTING_CHANNEL_ID) {
+                    const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
+                    const {command, context, context2} = parseServerCommand(message.content);
+                    // format: !serverCommand modifyPoints @username +/-points
+                    if (command === 'modifypoints') {
+                        // rate limit any requests that are checking non-discord apis (ie internal storage)
+                        if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
+                            return;
+                        }
+                        lastRequestForPointsTime = message.createdTimestamp;
+                        // do we have a value?
+                        if (context2 && reportingChannel && reportingChannel.isText()) {
+                            const operator = context2.charAt(0);
+                            const userId = stripDiscordCharactersFromId(context ?? '');
+                            const pointNumber = parseInt(context2.substring(1), 10);
+                            if (operator !== '+' && operator !== '-' || !userId) {
+                                await reportingChannel.send('Invalid command. Please user the form `!relax modifyPoints @discordNickname +10` or to subtract `-10`');
+                                return;
+                            }
+                            const user = await getUser(userId);
+                            if (user) {
+                                const newPoints = await modifyPoints(user, pointNumber, operator === '+' ? PointsAction.ADD : PointsAction.SUBTRACT);
+                                if (newPoints) {
+                                    await reportingChannel.send(`${formatDiscordUserTag(message.author.id)} now has ${newPoints} points`);
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -154,7 +176,7 @@ dotenv.config();
         client.on('guildMemberAdd', async (member) => {
             await member.send('', {
                 files: [
-                    './assets/chilltopia-banner.png',
+                    // './assets/chilltopia-banner.png',
                     './assets/rules.png'
                 ]
             });

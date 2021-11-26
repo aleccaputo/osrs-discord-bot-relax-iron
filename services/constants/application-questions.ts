@@ -25,7 +25,7 @@ export const ApplicationQuestions: Array<IApplicationQuestion> = [
         order: 5
     },
     {
-        question: 'How did you hear about ChillTopia?',
+        question: 'How did you hear about Iron Relax?',
         order: 6
     },
     {
