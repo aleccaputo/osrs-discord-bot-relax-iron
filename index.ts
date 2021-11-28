@@ -9,7 +9,7 @@ import {
 import {Rules} from "./services/constants/rules";
 import {ApplicationQuestions} from "./services/constants/application-questions";
 import {AwardQuestions} from "./services/constants/award-questions";
-import {sendQuestions} from "./services/ApplicationService";
+import {createApplicationChannel, sendQuestions} from "./services/ApplicationService";
 import {formatDiscordUserTag, parseServerCommand, stripDiscordCharactersFromId} from "./services/MessageHelpers";
 import {ensureUniqueAnswers, sendAwardQuestions} from "./services/CommunityAwardService";
 import {connect} from "./services/DataService";
@@ -19,6 +19,7 @@ import {
     reactWithBasePoints
 } from "./services/DropSubmissionService";
 import {createUser, getUser, modifyPoints} from "./services/UserService";
+import {User} from "discord.js";
 
 dotenv.config();
 let lastRequestForPointsTime: number | null = null;
@@ -82,20 +83,25 @@ const rateLimitSeconds = 2;
                     const {command, context} = parseServerCommand(message.content);
                     if (command === 'confirm' && context) {
                         // this is returned in the format <!@12345>, so we need to get rid of all the special chars
-                        const user = client.users.cache.get(context.replace(/[^0-9]/g, ''));
+                        const userId = (context.replace(/[^0-9]/g, ''));
+                        const user = client.users.cache.get(userId);
                         if (user) {
                             const guildMember = server.member(user);
                             if (process.env.NOT_IN_CLAN_ROLE_ID && process.env.RANK_ONE_ID && process.env.VERIFIED_ROLE_ID) {
                                 await guildMember?.roles.add([process.env.RANK_ONE_ID, process.env.VERIFIED_ROLE_ID]);
                                 await guildMember?.roles.remove(process.env.NOT_IN_CLAN_ROLE_ID);
+                                // delete the application channel
+                                const applicationChannel = server.channels.cache.find(x => x.name === `application-${user.username}`);
+                                if (applicationChannel) {
+                                    await applicationChannel.delete()
+                                }
                                 try {
                                     await createUser(guildMember);
                                 } catch (e) {
                                     if (process.env.REPORTING_CHANNEL_ID) {
                                         const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
                                         if (reportingChannel && reportingChannel.isText()) {
-                                            await reportingChannel.send(`Unable to add <@${message.author.id}> as a user. Please contact a developer`)
-                                        }
+                                            await reportingChannel.send(`Unable to add <@${userId}> as a user. Please contact a developer`);                                        }
                                     }
                                 }
                             }
@@ -149,8 +155,20 @@ const rateLimitSeconds = 2;
                             }
                         }
                     }
-                }
-            }
+                } else {
+                    if (message.channel.topic === 'application') {
+                        const usernameForChannel = message.channel.name.split('-')[1];
+                        if (usernameForChannel.toLocaleLowerCase() !== message.author.username.toLocaleLowerCase()) {
+                            return;
+                        }
+                        const {command} = parseServerCommand(message.content);
+                        if (command === 'apply') {
+                            await message.channel.send(`Great! I will now send you a series of ${ApplicationQuestions.length} questions. Please respond to each one in a single message. This will be your application. The messages will be sent in this channel and you will respond to each one here by sending a message back.`)
+                            if (process.env.AWAITING_APPROVAL_CHANNEL_ID) {
+                                await sendQuestions(message, server, client.channels.cache.get(process.env.AWAITING_APPROVAL_CHANNEL_ID));
+                            }                        }
+                    }
+                }            }
         });
 
         client.on('messageReactionAdd', async (reaction, user) => {
@@ -170,6 +188,26 @@ const rateLimitSeconds = 2;
             }
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 await extractMessageInformationAndProcessPoints(reaction, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.SUBTRACT)
+            }
+            if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
+                const emoji = '✅';
+                if (reaction.emoji.name === emoji) {
+                    const server = client.guilds.cache.find(guild => guild.id === serverId);
+                    if (server) {
+                        const guildMember = server.member(user as User);
+                        if (guildMember) {
+                            const fetchedMember = await guildMember.fetch();
+                            // cant create an application channel if you already have a role
+                            if (fetchedMember?.roles.cache.array().filter(x => x.name !== '@everyone').length) {
+                                console.log(fetchedMember?.roles.cache.array());
+                                await reaction.users.remove(user as User);
+                                return;
+                            }
+                            await createApplicationChannel(server, user, client.user?.id)
+                        }
+                    }
+                    await reaction.users.remove(user as User);
+                }
             }
         });
 
