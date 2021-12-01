@@ -1,6 +1,6 @@
-import {Channel, Emoji, Message, MessageReaction, TextChannel} from "discord.js";
+import {Channel, Emoji, Guild, GuildMember, Message, MessageReaction, TextChannel} from "discord.js";
 import User from "../models/User";
-import {getUser, modifyPoints} from "./UserService";
+import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -47,11 +47,16 @@ export enum PointsAction {
     SUBTRACT = 'subtract'
 }
 
-export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD) => {
+export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction, server?: Guild, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD) => {
     const message = await reaction.message.fetch();
     const userId = message.content.replace('<@', '').slice(0, -1);
     const points = await processPoints(reaction.emoji, userId, pointsAction);
+    const serverMember = server?.member(userId);
     if (points) {
+        if (serverMember) {
+            console.log('here')
+            await modifyNicknamePoints(points, serverMember);
+        }
         if (privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
             await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
         }

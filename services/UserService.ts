@@ -33,3 +33,18 @@ export const modifyPoints = async ( user: IUser | null, pointValue: number, acti
     }
     return null;
 }
+
+export const modifyNicknamePoints = async (newPoints: number, serverMember: GuildMember | null) => {
+    if (serverMember) {
+        const containsBracketsRe = /.*\[.*\].*/;
+        const nickname = serverMember.nickname;
+        console.log(nickname);
+        if (nickname) {
+            if (containsBracketsRe.test(nickname)) {
+                await serverMember.setNickname(nickname.replace(/\[(.+?)\]/g, `[${newPoints}]`));
+            } else {
+                await serverMember.setNickname(`${nickname} [${newPoints}]`)
+            }
+        }
+    }
+}
