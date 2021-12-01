@@ -2,13 +2,9 @@ import * as Discord from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
     initializeNominationReport,
-    initializeReportMembersEligibleForPointsBasedRankUp,
     scheduleReportMembersEligibleForPointsRankUp,
-    scheduleReportMembersEligibleForRankUp,
     scheduleReportMembersNotInClan,
-    scheduleReportNominationResults
 } from "./services/ReportingService";
-import {Rules} from "./services/constants/rules";
 import {ApplicationQuestions} from "./services/constants/application-questions";
 import {AwardQuestions} from "./services/constants/award-questions";
 import {createApplicationChannel, sendQuestions} from "./services/ApplicationService";
