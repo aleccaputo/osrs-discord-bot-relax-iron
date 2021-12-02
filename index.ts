@@ -2,11 +2,9 @@ import * as Discord from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
     initializeNominationReport,
-    scheduleReportMembersEligibleForRankUp,
+    scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
-    scheduleReportNominationResults
 } from "./services/ReportingService";
-import {Rules} from "./services/constants/rules";
 import {ApplicationQuestions} from "./services/constants/application-questions";
 import {AwardQuestions} from "./services/constants/award-questions";
 import {createApplicationChannel, sendQuestions} from "./services/ApplicationService";
@@ -18,7 +16,7 @@ import {
     PointsAction,
     reactWithBasePoints
 } from "./services/DropSubmissionService";
-import {createUser, getUser, modifyPoints} from "./services/UserService";
+import {createUser, getUser, modifyNicknamePoints, modifyPoints} from "./services/UserService";
 import {User} from "discord.js";
 
 dotenv.config();
@@ -37,9 +35,8 @@ const rateLimitSeconds = 2;
         client.once('ready', async () => {
             console.log('ready');
             try {
-                scheduleReportMembersEligibleForRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
+                scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersNotInClan(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '', process.env.NOT_IN_CLAN_ROLE_ID ?? '')
-                scheduleReportNominationResults(client, process.env.NOMINATION_RESULTS_CHANNEL_ID ?? '', serverId ?? '');
             } catch (e) {
                 console.error(e);
                 console.error("failed to initialize reporting tasks");
@@ -150,7 +147,9 @@ const rateLimitSeconds = 2;
                             if (user) {
                                 const newPoints = await modifyPoints(user, pointNumber, operator === '+' ? PointsAction.ADD : PointsAction.SUBTRACT);
                                 if (newPoints) {
-                                    await reportingChannel.send(`${formatDiscordUserTag(message.author.id)} now has ${newPoints} points`);
+                                    await reportingChannel.send(`${formatDiscordUserTag(userId)} now has ${newPoints} points`);
+                                    const serverMember = server.member(userId);
+                                    await modifyNicknamePoints(newPoints, serverMember)
                                 }
                             }
                         }
@@ -177,17 +176,8 @@ const rateLimitSeconds = 2;
                 return;
             }
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
-                await extractMessageInformationAndProcessPoints(reaction, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID))
-            }
-        });
-
-        client.on('messageReactionRemove', async (reaction, user) => {
-            // don't respond to messages from self (the bot)
-            if (user.id === client.user?.id) {
-                return;
-            }
-            if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
-                await extractMessageInformationAndProcessPoints(reaction, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.SUBTRACT)
+                const server = client.guilds.cache.find(guild => guild.id === serverId);
+                await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID))
             }
             if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
                 const emoji = '✅';
@@ -199,7 +189,6 @@ const rateLimitSeconds = 2;
                             const fetchedMember = await guildMember.fetch();
                             // cant create an application channel if you already have a role
                             if (fetchedMember?.roles.cache.array().filter(x => x.name !== '@everyone').length) {
-                                console.log(fetchedMember?.roles.cache.array());
                                 await reaction.users.remove(user as User);
                                 return;
                             }
@@ -211,14 +200,15 @@ const rateLimitSeconds = 2;
             }
         });
 
-        client.on('guildMemberAdd', async (member) => {
-            await member.send('', {
-                files: [
-                    // './assets/chilltopia-banner.png',
-                    './assets/rules.png'
-                ]
-            });
-            await member.send(Rules);
+        client.on('messageReactionRemove', async (reaction, user) => {
+            // don't respond to messages from self (the bot)
+            if (user.id === client.user?.id) {
+                return;
+            }
+            if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
+                const server = client.guilds.cache.find(guild => guild.id === serverId);
+                await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.SUBTRACT)
+            }
         });
 
         client.on('guildMemberRemove', async (member) => {
