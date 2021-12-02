@@ -1,7 +1,8 @@
-# osrs-discord-intro-bot
+# osrs-discord-intro-bot for Iron Relax
 
-Bot for a discord server leveraging <a href="https://github.com/discordjs/discord.js">discord.js</a> Integration with <a href="https://github.com/wise-old-man/wise-old-man">Wise Old Man</a>
+Bot for a discord server leveraging <a href="https://github.com/discordjs/discord.js">discord.js
 Currently handles:
-- New member applications
+- New member applications in a private channel in the server
 - Moderator commands
 - Daily Rank reports
+- Member "points" system
