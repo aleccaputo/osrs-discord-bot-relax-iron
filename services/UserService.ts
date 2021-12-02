@@ -38,7 +38,6 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
     if (serverMember) {
         const containsBracketsRe = /.*\[.*\].*/;
         const nickname = serverMember.nickname;
-        console.log(nickname);
         if (nickname) {
             if (containsBracketsRe.test(nickname)) {
                 await serverMember.setNickname(nickname.replace(/\[(.+?)\]/g, `[${newPoints}]`));

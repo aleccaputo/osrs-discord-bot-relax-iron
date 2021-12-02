@@ -44,7 +44,6 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
     const serverMember = server?.member(userId);
     if (points) {
         if (serverMember) {
-            console.log('here')
             await modifyNicknamePoints(points, serverMember);
         }
         if (privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
