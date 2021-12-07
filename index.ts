@@ -88,7 +88,8 @@ const rateLimitSeconds = 2;
                                 await guildMember?.roles.add([process.env.RANK_ONE_ID, process.env.VERIFIED_ROLE_ID]);
                                 await guildMember?.roles.remove(process.env.NOT_IN_CLAN_ROLE_ID);
                                 // delete the application channel
-                                const applicationChannel = server.channels.cache.find(x => x.name === `application-${user.username}`);
+                                const usernameWithoutSpaces = user.username.replace(' ', '-').toLocaleLowerCase();
+                                const applicationChannel = server.channels.cache.find(x => x.name === `application-${usernameWithoutSpaces}`);
                                 if (applicationChannel) {
                                     await applicationChannel.delete()
                                 }
@@ -156,7 +157,7 @@ const rateLimitSeconds = 2;
                     }
                 } else {
                     if (message.channel.topic === 'application') {
-                        const usernameForChannel = message.channel.name.split('-')[1];
+                        const usernameForChannel = message.channel.name.split('-').slice(1).join('-').replace('-', ' ');
                         if (usernameForChannel.toLocaleLowerCase() !== message.author.username.toLocaleLowerCase()) {
                             return;
                         }
@@ -165,9 +166,11 @@ const rateLimitSeconds = 2;
                             await message.channel.send(`Great! I will now send you a series of ${ApplicationQuestions.length} questions. Please respond to each one in a single message. This will be your application. The messages will be sent in this channel and you will respond to each one here by sending a message back.`)
                             if (process.env.AWAITING_APPROVAL_CHANNEL_ID) {
                                 await sendQuestions(message, server, client.channels.cache.get(process.env.AWAITING_APPROVAL_CHANNEL_ID));
-                            }                        }
+                            }
+                        }
                     }
-                }            }
+                }
+            }
         });
 
         client.on('messageReactionAdd', async (reaction, user) => {

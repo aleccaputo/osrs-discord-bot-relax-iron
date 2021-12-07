@@ -95,5 +95,5 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
             }
         ]
     });
-    await channel.send(`Welcome <@${applicant.id}>! To start your application type !chill apply`);
+    await channel.send(`Welcome <@${applicant.id}>! To start your application type !relax apply`);
 }
