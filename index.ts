@@ -32,7 +32,7 @@ const rateLimitSeconds = 2;
         await client.login(process.env.TOKEN);
         await connect();
 
-/*        client.once('ready', async () => {
+        client.once('ready', async () => {
             console.log('ready');
             try {
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
@@ -41,9 +41,9 @@ const rateLimitSeconds = 2;
                 console.error(e);
                 console.error("failed to initialize reporting tasks");
             }
-        });*/
+        });
 
-/*        client.on('message', async (message) => {
+        client.on('message', async (message) => {
             // don't respond to messages from self
             if (message.author.id === client.user?.id) {
                 return;
@@ -171,9 +171,9 @@ const rateLimitSeconds = 2;
                     }
                 }
             }
-        });*/
+        });
 
-/*        client.on('messageReactionAdd', async (reaction, user) => {
+        client.on('messageReactionAdd', async (reaction, user) => {
             // don't respond to messages from self (the bot)
             if (user.id === client.user?.id) {
                 return;
@@ -230,7 +230,7 @@ const rateLimitSeconds = 2;
                     }
                 }
             }
-        });*/
+        });
     } catch (e) {
         console.log(e);
         console.log('error on startup!')

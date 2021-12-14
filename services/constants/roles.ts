@@ -49,67 +49,60 @@ export interface PointsRole extends Role {
 }
 export const PointsRoles: Array<PointsRole> = [
     {
-        name: 'Red Topaz',
+        name: 'Sapphire',
         id: process.env.RANK_ONE_ID ?? '1',
         minPoints: 0,
         maxPoints: 100,
         order: 1
     },
     {
-        name: 'Sapphire',
+        name: 'Emerald',
         id: process.env.RANK_TWO_ID ?? '2',
         minPoints: 100,
         maxPoints: 200,
         order: 2
     },
     {
-        name: 'Emerald',
+        name: 'Ruby',
         id: process.env.RANK_THREE_ID ?? '3',
         minPoints: 200,
         maxPoints: 300,
         order: 3
     },
     {
-        name: 'Ruby',
+        name: 'Diamond',
         id: process.env.RANK_FOUR_ID ?? '4',
         minPoints: 300,
         maxPoints: 400,
         order: 4
     },
     {
-        name: 'Diamond',
+        name: 'Dragonstone',
         id: process.env.RANK_FIVE_ID ?? '5',
         minPoints: 400,
-        maxPoints: 500,
+        maxPoints: 600,
         order: 5
     },
     {
-        name: 'Dragonstone',
+        name: 'Onyx',
         id: process.env.RANK_SIX_ID ?? '6',
-        minPoints: 500,
-        maxPoints: 600,
+        minPoints: 600,
+        maxPoints: 800,
         order: 6
     },
     {
-        name: 'Onyx',
-        id: process.env.RANK_SEVEN_ID ?? '7',
-        minPoints: 600,
-        maxPoints: 800,
+        name: 'Zenyte',
+        id: process.env.RANK_SEVEN_ID ?? '8',
+        minPoints: 800,
+        maxPoints: 1000,
         order: 7
     },
     {
-        name: 'Zenyte',
-        id: process.env.RANK_EIGHT_ID ?? '8',
-        minPoints: 800,
-        maxPoints: 1000,
-        order: 8
-    },
-    {
         name: 'Wrath',
-        id: process.env.RANK_NINE_ID ?? '9',
+        id: process.env.RANK_EIGHT_ID ?? '9',
         minPoints: 1000,
         maxPoints: 100000000,
-        order: 9
+        order: 8
     },
 ]
 
