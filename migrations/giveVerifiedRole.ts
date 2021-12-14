@@ -19,7 +19,6 @@ dotenv.config();
                 // if they have at least one role, also give them verified
                 if (member?.roles.cache.array().filter(x => x.name !== '@everyone').length && process.env.VERIFIED_ROLE_ID) {
                     await member?.roles.add([process.env.VERIFIED_ROLE_ID]);
-                    return;
                 }
             }
             process.exit();
