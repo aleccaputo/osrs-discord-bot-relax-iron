@@ -75,11 +75,6 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
                 allow: Permissions.DEFAULT
             },
             {
-                id: process.env.CO_OWNER_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
-            },
-            {
                 id: applicant.id,
                 type: 'member',
                 allow: ['READ_MESSAGE_HISTORY', 'SEND_MESSAGES', 'VIEW_CHANNEL']
