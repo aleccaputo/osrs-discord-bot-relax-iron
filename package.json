@@ -7,7 +7,8 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "start": "node dist/index.js",
-    "migrateV1": "node dist/migrations/v1.js"
+    "migrateV1": "node dist/migrations/v1.js",
+    "giveVerifiedRole": "node dist/giveVerifiedRole.js"
   },
   "keywords": [],
   "author": "",
