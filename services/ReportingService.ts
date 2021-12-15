@@ -87,21 +87,23 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
     if (server) {
         const currentMembers = await server.members.fetch();
         const allInternalUsers = await User.find({});
-        const rankUps = currentMembers.array().filter(allMember => allMember.roles.cache.array().filter(x =>  x.id === process.env.VERIFIED_ROLE_ID).length).map(member => {
-            const existing = allInternalUsers.find(x => x.discordId === member.id);
-            if (existing) {
-                const currentPoints = existing.points;
-                const roleBasedOnPoints = PointsRoles.find(x => currentPoints >= x.minPoints && currentPoints < x.maxPoints);
-                const memberRoleIds = member.roles.cache.map(role => role.id);
-                // they are the rank they should be
-                if (memberRoleIds.find(x => x === roleBasedOnPoints?.id)) {
-                    return;
+        const rankUps = currentMembers.array().filter(allMember => allMember.roles.cache.array()
+            .filter(x =>  x.id === process.env.VERIFIED_ROLE_ID).length)
+            .filter(x => x.roles.cache.some(y => PointsRoles.filter(z => z.id === y.id).length > 0)).map(member => {
+                const existing = allInternalUsers.find(x => x.discordId === member.id);
+                if (existing) {
+                    const currentPoints = existing.points;
+                    const roleBasedOnPoints = PointsRoles.find(x => currentPoints >= x.minPoints && currentPoints < x.maxPoints);
+                    const memberRoleIds = member.roles.cache.map(role => role.id);
+                    // they are the rank they should be
+                    if (memberRoleIds.find(x => x === roleBasedOnPoints?.id)) {
+                        return;
+                    }
+                    return {
+                        userId: member.id,
+                        nextRank: roleBasedOnPoints
+                    } as IMemberDueForRank<PointsRole>
                 }
-                return {
-                    userId: member.id,
-                    nextRank: roleBasedOnPoints
-                } as IMemberDueForRank<PointsRole>
-            }
         }).filter(x => x !== undefined && x.userId !== client.user?.id);
         console.log(`rank ups:`);
         console.log(rankUps);
@@ -110,7 +112,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatRankUpMessage(rankUps)
                 try {
-                    await reportingChannel.send(message, {split: true});
+                    // await reportingChannel.send(message, {split: true});
                 } catch (e) {
                     console.log('Error sending rank up report to channel');
                     console.log(e);
