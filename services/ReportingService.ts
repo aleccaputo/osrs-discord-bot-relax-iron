@@ -103,6 +103,8 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
                 } as IMemberDueForRank<PointsRole>
             }
         }).filter(x => x !== undefined && x.userId !== client.user?.id);
+        console.log(`rank ups:`);
+        console.log(rankUps);
         if (rankUps && rankUps.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
             if (reportingChannel && reportingChannel.isText()) {
