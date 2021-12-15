@@ -87,6 +87,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
     if (server) {
         const currentMembers = await server.members.fetch();
         const allInternalUsers = await User.find({});
+        // filter only verified and they must already have a rank
         const rankUps = currentMembers.array().filter(allMember => allMember.roles.cache.array()
             .filter(x =>  x.id === process.env.VERIFIED_ROLE_ID).length)
             .filter(x => x.roles.cache.some(y => PointsRoles.filter(z => z.id === y.id).length > 0)).map(member => {
@@ -105,14 +106,12 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
                     } as IMemberDueForRank<PointsRole>
                 }
         }).filter(x => x !== undefined && x.userId !== client.user?.id);
-        console.log(`rank ups:`);
-        console.log(rankUps);
         if (rankUps && rankUps.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatRankUpMessage(rankUps)
                 try {
-                    // await reportingChannel.send(message, {split: true});
+                    await reportingChannel.send(message, {split: true});
                 } catch (e) {
                     console.log('Error sending rank up report to channel');
                     console.log(e);
