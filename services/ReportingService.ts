@@ -87,7 +87,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
     if (server) {
         const currentMembers = await server.members.fetch();
         const allInternalUsers = await User.find({});
-        const rankUps = currentMembers.array().map(member => {
+        const rankUps = currentMembers.array().filter(allMember => allMember.roles.cache.array().filter(x =>  x.id === process.env.VERIFIED_ROLE_ID).length).map(member => {
             const existing = allInternalUsers.find(x => x.discordId === member.id);
             if (existing) {
                 const currentPoints = existing.points;
@@ -110,7 +110,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatRankUpMessage(rankUps)
                 try {
-                    await reportingChannel.send(message);
+                    await reportingChannel.send(message, {split: true});
                 } catch (e) {
                     console.log('Error sending rank up report to channel');
                     console.log(e);
