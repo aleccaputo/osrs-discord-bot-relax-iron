@@ -35,7 +35,6 @@ const rateLimitSeconds = 2;
         client.once('ready', async () => {
             console.log('ready');
             try {
-                await initializeReportMembersEligibleForPointsBasedRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersNotInClan(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '', process.env.NOT_IN_CLAN_ROLE_ID ?? '')
             } catch (e) {

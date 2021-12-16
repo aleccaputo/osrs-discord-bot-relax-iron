@@ -133,7 +133,7 @@ const initializeReportMembersNotInClan = async (client: Client, reportingChannel
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatNotInClanMessage(membersWithNotInClanRole);
                 try {
-                    await reportingChannel.send(message);
+                    await reportingChannel.send(message, {split: true});
                 } catch (e) {
                     console.log('Error sending not in clan report to channel');
                     console.log(e);
