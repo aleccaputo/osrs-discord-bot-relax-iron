@@ -216,12 +216,13 @@ const rateLimitSeconds = 2;
 
         client.on('guildMemberRemove', async (member) => {
             if (process.env.REPORTING_CHANNEL_ID) {
+                const fullMember = await member.fetch();
                 const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
                 if (reportingChannel && reportingChannel.isText()) {
                     try {
-                        let message = `<@${member.id}> has left the server.`;
-                        if (member.nickname) {
-                            message += ` OSRS name is ${member.nickname}.\nCheck the in game clan to see if they are still there. If not, consider removing them from wise old man.`
+                        let message = `${fullMember.displayName} has left the server.`;
+                        if (fullMember.nickname) {
+                            message += ` OSRS name was ${fullMember.nickname}.\nCheck the in game clan to see if they are still there.`
                         }
                         await reportingChannel.send(message);
                     } catch (e) {
