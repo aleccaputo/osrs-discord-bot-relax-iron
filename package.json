@@ -26,6 +26,7 @@
     "dayjs": "^1.10.5",
     "discord.js": "^12.5.3",
     "dotenv": "^10.0.0",
+    "fast-csv": "^4.3.6",
     "lodash.omit": "^4.5.0",
     "mongoose": "^6.0.12",
     "node-cron": "^3.0.0",
