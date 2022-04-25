@@ -2,6 +2,7 @@ import User, {IUser} from "../models/User";
 import dayjs from "dayjs";
 import {GuildMember} from "discord.js";
 import {PointsAction} from "./DropSubmissionService";
+import {UserExistsException} from "../exceptions/UserExistsException";
 
 export const createUser = async (member: GuildMember | null) => {
     if (!member) {
@@ -10,8 +11,8 @@ export const createUser = async (member: GuildMember | null) => {
     }
     const existingMember = await User.findOne({discordId: member.id});
     if (existingMember !== null) {
-        console.log('Member already exists');
-        throw new Error('Member already exists as user');
+        console.log(`Member ${member.id} already exists in database`);
+        throw new UserExistsException("User found when trying to add new");
     }
     await new User({
         discordId: member.id,

@@ -18,6 +18,7 @@ import {
 } from "./services/DropSubmissionService";
 import {createUser, getUser, modifyNicknamePoints, modifyPoints} from "./services/UserService";
 import {User} from "discord.js";
+import {UserExistsException} from "./exceptions/UserExistsException";
 
 dotenv.config();
 let lastRequestForPointsTime: number | null = null;
@@ -100,7 +101,12 @@ const rateLimitSeconds = 2;
                                     if (process.env.REPORTING_CHANNEL_ID) {
                                         const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
                                         if (reportingChannel && reportingChannel.isText()) {
-                                            await reportingChannel.send(`Unable to add <@${userId}> as a user. Please contact a developer`);                                        }
+                                            if (e instanceof UserExistsException) {
+                                                await reportingChannel.send(`<@${userId}> is already a user in the system (potential server re-join). Please ensure their discord profile is set correctly.`);
+                                            } else {
+                                                await reportingChannel.send(`Unable to add <@${userId}> as a user. Please contact a developer`);
+                                            }
+                                        }
                                     }
                                 }
                             }
