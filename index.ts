@@ -19,6 +19,7 @@ import {
 import {createUser, getUser, modifyNicknamePoints, modifyPoints} from "./services/UserService";
 import {User} from "discord.js";
 import {UserExistsException} from "./exceptions/UserExistsException";
+import {NicknameLengthException} from "./exceptions/NicknameLengthException";
 
 dotenv.config();
 let lastRequestForPointsTime: number | null = null;
@@ -157,7 +158,14 @@ const rateLimitSeconds = 2;
                                 if (newPoints) {
                                     await reportingChannel.send(`${formatDiscordUserTag(userId)} now has ${newPoints} points`);
                                     const serverMember = server.member(userId);
-                                    await modifyNicknamePoints(newPoints, serverMember)
+                                    try {
+                                        await modifyNicknamePoints(newPoints, serverMember)
+                                    } catch (e) {
+                                        if (e instanceof NicknameLengthException) {
+                                            await reportingChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
+                                            return;
+                                        }
+                                    }
                                 }
                             }
                         }

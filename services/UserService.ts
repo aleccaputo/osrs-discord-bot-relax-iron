@@ -3,6 +3,7 @@ import dayjs from "dayjs";
 import {GuildMember} from "discord.js";
 import {PointsAction} from "./DropSubmissionService";
 import {UserExistsException} from "../exceptions/UserExistsException";
+import {NicknameLengthException} from "../exceptions/NicknameLengthException";
 
 export const createUser = async (member: GuildMember | null) => {
     if (!member) {
@@ -40,10 +41,11 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
         const containsBracketsRe = /.*\[.*\].*/;
         const nickname = serverMember.nickname;
         if (nickname) {
-            if (containsBracketsRe.test(nickname)) {
-                await serverMember.setNickname(nickname.replace(/\[(.+?)\]/g, `[${newPoints}]`));
+            const newNickname = containsBracketsRe.test(nickname) ? nickname.replace(/\[(.+?)\]/g, `[${newPoints}]`) : `${nickname} [${newPoints}]`;
+            if (nickname.length > 32) {
+                throw new NicknameLengthException('Nickname is more than 32 characters');
             } else {
-                await serverMember.setNickname(`${nickname} [${newPoints}]`)
+                await serverMember.setNickname(newNickname);
             }
         }
     }

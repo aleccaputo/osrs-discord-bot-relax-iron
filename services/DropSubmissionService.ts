@@ -1,6 +1,7 @@
 import {Channel, Emoji, Guild, GuildMember, Message, MessageReaction, TextChannel} from "discord.js";
 import User from "../models/User";
 import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
+import {NicknameLengthException} from "../exceptions/NicknameLengthException";
 
 const NumberEmojis = {
     // ONE: '1️⃣',
@@ -42,12 +43,19 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
     const userId = message.content.replace('<@', '').slice(0, -1);
     const points = await processPoints(reaction.emoji, userId, pointsAction);
     const serverMember = server?.member(userId);
-    if (points) {
-        if (serverMember) {
-            await modifyNicknamePoints(points, serverMember);
-        }
-        if (privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
+    if (points && privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
+        try {
+            if (serverMember) {
+                await modifyNicknamePoints(points, serverMember);
+            }
             await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
+        } catch (e) {
+            if (e instanceof NicknameLengthException) {
+                await privateSubmissionsChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
+                return;
+            } else {
+                throw e;
+            }
         }
     }
 }
