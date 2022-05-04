@@ -54,7 +54,7 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
                 await privateSubmissionsChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
                 return;
             } else {
-                await privateSubmissionsChannel.send(`Unable to modify points or nickname for <@${userId}`);
+                await privateSubmissionsChannel.send(`Unable to modify points or nickname for <@${userId}>`);
                 return;
             }
         }
