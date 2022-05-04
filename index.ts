@@ -164,6 +164,9 @@ const rateLimitSeconds = 2;
                                         if (e instanceof NicknameLengthException) {
                                             await reportingChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
                                             return;
+                                        } else {
+                                            await reportingChannel.send(`Unable to set points or modify nickname for <@${userId}>`);
+                                            return;
                                         }
                                     }
                                 }

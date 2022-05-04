@@ -45,7 +45,7 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
             if (nickname.length > 32) {
                 throw new NicknameLengthException('Nickname is more than 32 characters');
             } else {
-                await serverMember.setNickname(newNickname);
+                return serverMember.setNickname(newNickname);
             }
         }
     }
