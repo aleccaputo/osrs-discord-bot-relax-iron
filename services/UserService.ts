@@ -26,6 +26,10 @@ export const getUser = async (discordId: string) => {
     return User.findOne({discordId: discordId});
 };
 
+export const getUsersByPointsDesc = () => {
+    return User.find({}).sort({points: -1}).exec();
+}
+
 export const modifyPoints = async ( user: IUser | null, pointValue: number, action: PointsAction) => {
     if (user) {
         const newPoints = action === PointsAction.ADD ? user.points + pointValue : Math.max(0, user.points - pointValue);

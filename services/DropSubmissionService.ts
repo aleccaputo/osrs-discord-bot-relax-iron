@@ -4,17 +4,43 @@ import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
 import {NicknameLengthException} from "../exceptions/NicknameLengthException";
 
 const NumberEmojis = {
-    // ONE: '1️⃣',
+    ONE: '1️⃣',
     TWO: '2️⃣',
     THREE: '3️⃣',
-    // FOUR: '4️⃣',
+    FOUR: '4️⃣',
     FIVE: '5️⃣',
-    // SIX: '6️⃣',
+    SIX: '6️⃣',
     SEVEN: '7️⃣',
-    // EIGHT: '8️⃣',
-    // NINE: '9️⃣',
+    EIGHT: '8️⃣',
+    NINE: '9️⃣',
     TEN: '🔟'
 }
+
+export const convertNumberToEmoji = (num: number) => {
+    switch (num) {
+        case 1:
+            return NumberEmojis.ONE;
+        case 2:
+            return NumberEmojis.TWO;
+        case 3:
+            return NumberEmojis.THREE;
+        case 4:
+            return NumberEmojis.FOUR;
+        case 5:
+            return NumberEmojis.FIVE;
+        case 6:
+            return NumberEmojis.SIX;
+        case 7:
+            return NumberEmojis.SEVEN;
+        case 8:
+            return NumberEmojis.EIGHT;
+        case 9:
+            return NumberEmojis.NINE;
+        case 10:
+            return NumberEmojis.TEN;
+    }
+}
+
 // wonder if the intl lib has something for this
 const convertEmojiToNumber = (emoji: Emoji) => {
     switch (emoji.name) {
