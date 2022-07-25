@@ -1,5 +1,4 @@
-import {Channel, Emoji, Guild, GuildMember, Message, MessageReaction, TextChannel} from "discord.js";
-import User from "../models/User";
+import {Channel, Emoji, Guild, GuildMember, Message, MessageReaction, PartialUser, TextChannel, User} from "discord.js";
 import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
 import {NicknameLengthException} from "../exceptions/NicknameLengthException";
 
@@ -15,6 +14,8 @@ const NumberEmojis = {
     NINE: '9️⃣',
     TEN: '🔟'
 }
+
+const whiteCheckEmoji = '✅';
 
 export const convertNumberToEmoji = (num: number) => {
     switch (num) {
@@ -64,17 +65,26 @@ export enum PointsAction {
     SUBTRACT = 'subtract'
 }
 
-export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction, server?: Guild, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD) => {
+export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction, server?: Guild, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD, clientId?: string, user?: User | PartialUser) => {
     const message = await reaction.message.fetch();
+    const hasReaction = message.reactions.cache.some(x => x.users.cache.filter(y => y.id !== clientId).array().length > 1);
+    if (hasReaction && user && pointsAction === PointsAction.ADD) {
+        await reaction.users.remove(user as User);
+        return;
+    }
+    if (hasReaction && pointsAction === PointsAction.SUBTRACT) {
+        return;
+    }
     const userId = message.content.replace('<@', '').slice(0, -1);
     const points = await processPoints(reaction.emoji, userId, pointsAction);
     const serverMember = server?.member(userId);
     if (points && privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
         try {
+            await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
+            pointsAction === PointsAction.ADD ? await message.react(whiteCheckEmoji) : await message.reactions.cache.find(x => x.emoji.name === whiteCheckEmoji)?.remove();
             if (serverMember) {
                 await modifyNicknamePoints(points, serverMember);
             }
-            await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
         } catch (e) {
             if (e instanceof NicknameLengthException) {
                 await privateSubmissionsChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
@@ -86,7 +96,6 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
         }
     }
 }
-
 const processPoints = async (emoji: Emoji, userDiscordId: string, action: PointsAction = PointsAction.ADD) => {
     const pointValue = convertEmojiToNumber(emoji);
     if (pointValue) {
