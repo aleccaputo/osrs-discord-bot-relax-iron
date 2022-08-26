@@ -28,7 +28,7 @@
     "dotenv": "^10.0.0",
     "fast-csv": "^4.3.6",
     "lodash.omit": "^4.5.0",
-    "mongoose": "^6.0.12",
+    "mongoose": "^6.4.6",
     "node-cron": "^3.0.0",
     "node-fetch": "^2.6.1"
   }
