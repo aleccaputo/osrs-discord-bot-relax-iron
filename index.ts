@@ -41,6 +41,10 @@ const rateLimitSeconds = 2;
         await connect();
 
         client.once('ready', async () => {
+            const guild = client.guilds.cache.find(guild => guild.id === serverId);
+            if (guild) {
+                await guild.members.fetch();
+            }
             console.log('ready');
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
