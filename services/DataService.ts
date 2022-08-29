@@ -1,6 +1,5 @@
 import * as dotenv from "dotenv";
 import mongoose from 'mongoose';
-import CommunityAwards from "../models/CommunityAwards";
 dotenv.config();
 
 export const connect = async () => {

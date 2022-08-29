@@ -5,7 +5,7 @@ import {PointsAction} from "./DropSubmissionService";
 import {UserExistsException} from "../exceptions/UserExistsException";
 import {NicknameLengthException} from "../exceptions/NicknameLengthException";
 
-export const createUser = async (member: GuildMember | null) => {
+export const createUser = async (member: GuildMember | null | undefined) => {
     if (!member) {
         console.error('Unable to add member as user');
         throw new Error('Unable to add member as user');
@@ -40,7 +40,7 @@ export const modifyPoints = async ( user: IUser | null, pointValue: number, acti
     return null;
 }
 
-export const modifyNicknamePoints = async (newPoints: number, serverMember: GuildMember | null) => {
+export const modifyNicknamePoints = async (newPoints: number, serverMember: GuildMember | null | undefined) => {
     if (serverMember) {
         const containsBracketsRe = /.*\[.*\].*/;
         const nickname = serverMember.nickname;

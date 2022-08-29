@@ -4,9 +4,10 @@ export interface IUser extends Document{
     id: string;
     discordId: string;
     points: number;
+    joined: string;
 }
 
-const UserSchema = new Schema({
+const UserSchema = new Schema<IUser>({
     discordId: {
         type: String,
         required: true,

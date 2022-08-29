@@ -7,7 +7,6 @@
     "build": "tsc --build",
     "clean": "tsc --build --clean",
     "start": "node dist/index.js",
-    "migrateV1": "node dist/migrations/v1.js",
     "giveVerifiedRole": "node dist/migrations/giveVerifiedRole.js"
   },
   "keywords": [],
@@ -15,7 +14,6 @@
   "license": "ISC",
   "devDependencies": {
     "@types/lodash.omit": "^4.5.6",
-    "@types/mongoose": "^5.11.97",
     "@types/node": "^15.6.1",
     "@types/node-cron": "^2.0.3",
     "@types/node-fetch": "^2.5.10",
@@ -24,7 +22,7 @@
   },
   "dependencies": {
     "dayjs": "^1.10.5",
-    "discord.js": "^12.5.3",
+    "discord.js": "^13.10.3",
     "dotenv": "^10.0.0",
     "fast-csv": "^4.3.6",
     "lodash.omit": "^4.5.0",

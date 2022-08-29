@@ -1,4 +1,13 @@
-import {Channel, Guild, Message, MessageCollector, PartialUser, Permissions, TextChannel, User} from "discord.js";
+import {
+    AnyChannel,
+    Guild,
+    Message,
+    MessageCollector,
+    PartialUser,
+    Permissions,
+    TextChannel,
+    User
+} from "discord.js";
 import {ApplicationQuestions, IApplicationQuestionAnswer} from "./constants/application-questions";
 import * as dotenv from "dotenv";
 
@@ -15,11 +24,12 @@ const formatApplication = (answers: Array<string>, authorId: string) => {
     return applicationString;
 }
 
-export const sendQuestions = async (message: Message, server: Guild, approvalChannel?: Channel) => {
+export const sendQuestions = async (message: Message, server: Guild, approvalChannel?: AnyChannel) => {
     let questionCounter = 0;
     // assert the person sending the response is the same we sent the application to.
     const questionFilter = (m: Message) => m.author.id === message.author.id;
-    const collector = new MessageCollector(message.channel as TextChannel, questionFilter, {
+    const collector = new MessageCollector(message.channel as TextChannel, {
+        filter: questionFilter,
         max: ApplicationQuestions.length
     });
     message.channel.send(ApplicationQuestions[questionCounter++].question);
@@ -31,18 +41,18 @@ export const sendQuestions = async (message: Message, server: Guild, approvalCha
     collector.on('end', async collected => {
         await message.channel.send(`Thank you for filling out the application, our bot will send us your application. Once your application has been reviewed and you will then be requested to meet in-game for a clan invite before your application is accepted. If you don’t work with a mod to get a in-game clan invite within the next 48 hours you will be kicked from the Discord Server and have to re apply again.`)
         if (process.env.NOT_IN_CLAN_ROLE_ID) {
-            const guildMember = server.member(message.author);
+            const guildMember = server.members.cache.get(message.author.id);
             await guildMember?.roles.add(process.env.NOT_IN_CLAN_ROLE_ID)
         }
-        const collectedArray = collected.array().map(x => x.toString());
+        const collectedArray = [...collected.values()].map(x => x.toString());
         const username = collectedArray[0];
         try {
-            await server.member(message.author)?.setNickname(username);
+            await server.members.cache.get(message.author.id)?.setNickname(username);
         } catch (e) {
             console.log(e);
         }
         if (approvalChannel && approvalChannel.isText()) {
-            const formattedApplication = formatApplication(collected.array().map(x => x.toString()), message.author.id);
+            const formattedApplication = formatApplication([...collected.values()].map(x => x.toString()), message.author.id);
             await approvalChannel.send(formattedApplication);
         }
     })
@@ -56,8 +66,9 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
         return;
     }
     const channel = await server.channels.create(channelName, {
-        type: 'text',
+        type: 'GUILD_TEXT',
         topic: 'application',
+        parent: process.env.APPLICATIONS_CHANNEL_CATEGORY_ID,
         permissionOverwrites: [
             {
                 id: process.env.MOD_ROLE_ID ?? '',
@@ -71,6 +82,16 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
             },
             {
                 id: process.env.OWNER_ROLE_ID ?? '',
+                type: 'role',
+                allow: Permissions.DEFAULT
+            },
+            {
+                id: process.env.CO_OWNER_ROLE_ID ?? '',
+                type: 'role',
+                allow: Permissions.DEFAULT
+            },
+            {
+                id: process.env.TRIAL_MOD_ROLE_ID ?? '',
                 type: 'role',
                 allow: Permissions.DEFAULT
             },

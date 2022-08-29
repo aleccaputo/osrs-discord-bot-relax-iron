@@ -3,7 +3,6 @@ import type {Client} from "discord.js";
 import dayjs from "dayjs";
 import {PointsRole, PointsRoles, TimeRole, TimeRoles} from "./constants/roles";
 import {GuildMember} from "discord.js";
-import {reportCurrentVotes} from "./CommunityAwardService";
 import mongoose from "mongoose";
 import {connect} from "./DataService";
 import User from "../models/User";
@@ -90,7 +89,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
         const currentMembers = await server.members.fetch();
         const allInternalUsers = await User.find({});
         // filter only verified and they must already have a rank
-        const rankUps = currentMembers.array().filter(allMember => allMember.roles.cache.array()
+        const rankUps = [...currentMembers.values()].filter(allMember => [...allMember.roles.cache.values()]
             .filter(x =>  x.id === process.env.VERIFIED_ROLE_ID).length)
             .filter(x => x.roles.cache.some(y => PointsRoles.filter(z => z.id === y.id).length > 0)).map(member => {
                 const existing = allInternalUsers.find(x => x.discordId === member.id);
@@ -113,7 +112,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatRankUpMessage(rankUps)
                 try {
-                    await reportingChannel.send(message, {split: true});
+                    await reportingChannel.send(message);
                 } catch (e) {
                     console.log('Error sending rank up report to channel');
                     console.log(e);
@@ -129,13 +128,13 @@ const initializeReportMembersNotInClan = async (client: Client, reportingChannel
     const server = client.guilds.cache.find(guild => guild.id === serverId);
     if (server) {
         const currentMembers = await server.members.fetch();
-        const membersWithNotInClanRole = currentMembers.filter(x => x.roles.cache.some(y => y.id === notInClanId)).array();
+        const membersWithNotInClanRole = [...currentMembers.filter(x => x.roles.cache.some(y => y.id === notInClanId)).values()];
         if (membersWithNotInClanRole.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
             if (reportingChannel && reportingChannel.isText()) {
                 const message = formatNotInClanMessage(membersWithNotInClanRole);
                 try {
-                    await reportingChannel.send(message, {split: true});
+                    await reportingChannel.send(message);
                 } catch (e) {
                     console.log('Error sending not in clan report to channel');
                     console.log(e);
@@ -143,22 +142,6 @@ const initializeReportMembersNotInClan = async (client: Client, reportingChannel
             }
         }
 
-    }
-}
-
-export const initializeNominationReport = async (client: Client, reportingChannelId: string, serverId: string) => {
-    console.log('Kicking off award nomination report...');
-    const server = client.guilds.cache.find(guild => guild.id === serverId);
-    if (server) {
-        const reportingChannel = client.channels.cache.get(reportingChannelId);
-        if (reportingChannel && reportingChannel.isText()) {
-            try {
-                const report = await reportCurrentVotes();
-                await reportingChannel.send(report, {split: true});
-            } catch (e) {
-                console.log(e);
-            }
-        }
     }
 }
 
@@ -185,8 +168,9 @@ export const initializeUserCsvExtract = async (client: Client, reportingChannelI
                 const reportingChannel = client.channels.cache.get(reportingChannelId);
                 if (reportingChannel && reportingChannel.isText()) {
                     try {
-                        await reportingChannel.send('Users backup csv generated.', {
-                            split: true, files: [{
+                        await reportingChannel.send({
+                            content:'Users backup csv generated.',
+                            files: [{
                                 attachment: `./${filename}`,
                                 name: filename
                             }]
