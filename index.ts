@@ -106,7 +106,7 @@ const rateLimitSeconds = 2;
                 const privateSubmissionsChannel = client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID);
                 const messageAttachments = message.attachments.size > 0 ? [...message.attachments.values()] : null;
                 if (privateSubmissionsChannel && messageAttachments && privateSubmissionsChannel.isText()) {
-                    const privateMessage = await privateSubmissionsChannel.send({content: `<@${message.author.id}>`, attachments: messageAttachments});
+                    const privateMessage = await privateSubmissionsChannel.send({content: `<@${message.author.id}>`, files: messageAttachments});
                     await reactWithBasePoints(privateMessage);
                 }
                 else {
