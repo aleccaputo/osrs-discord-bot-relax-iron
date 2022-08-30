@@ -1,10 +1,12 @@
 import {
-    AnyChannel,
+    Channel,
+    ChannelType,
     Guild,
     Message,
     MessageCollector,
+    OverwriteType,
     PartialUser,
-    Permissions,
+    Permissions, PermissionsBitField,
     TextChannel,
     User
 } from "discord.js";
@@ -24,7 +26,7 @@ const formatApplication = (answers: Array<string>, authorId: string) => {
     return applicationString;
 }
 
-export const sendQuestions = async (message: Message, server: Guild, approvalChannel?: AnyChannel) => {
+export const sendQuestions = async (message: Message, server: Guild, approvalChannel?: Channel) => {
     let questionCounter = 0;
     // assert the person sending the response is the same we sent the application to.
     const questionFilter = (m: Message) => m.author.id === message.author.id;
@@ -51,7 +53,7 @@ export const sendQuestions = async (message: Message, server: Guild, approvalCha
         } catch (e) {
             console.log(e);
         }
-        if (approvalChannel && approvalChannel.isText()) {
+        if (approvalChannel && approvalChannel.type === ChannelType.GuildText) {
             const formattedApplication = formatApplication([...collected.values()].map(x => x.toString()), message.author.id);
             await approvalChannel.send(formattedApplication);
         }
@@ -65,49 +67,50 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
         console.log('application channel already exists');
         return;
     }
-    const channel = await server.channels.create(channelName, {
-        type: 'GUILD_TEXT',
+    const channel = await server.channels.create({
+        name: channelName,
+        type: ChannelType.GuildText,
         topic: 'application',
         parent: process.env.APPLICATIONS_CHANNEL_CATEGORY_ID,
         permissionOverwrites: [
             {
                 id: process.env.MOD_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Role,
+                allow: PermissionsBitField.Default
             },
             {
                 id: process.env.ADMIN_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Role,
+                allow: PermissionsBitField.Default
             },
             {
                 id: process.env.OWNER_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Role,
+                allow: PermissionsBitField.Default
             },
             {
                 id: process.env.CO_OWNER_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Role,
+                allow: PermissionsBitField.Default
             },
             {
                 id: process.env.TRIAL_MOD_ROLE_ID ?? '',
-                type: 'role',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Role,
+                allow: PermissionsBitField.Default
             },
             {
                 id: applicant.id,
-                type: 'member',
-                allow: ['READ_MESSAGE_HISTORY', 'SEND_MESSAGES', 'VIEW_CHANNEL']
+                type: OverwriteType.Member,
+                allow: [PermissionsBitField.Flags.ReadMessageHistory, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ViewChannel]
             },
             {
                 id: botId ?? '',
-                type: 'member',
-                allow: Permissions.DEFAULT
+                type: OverwriteType.Member,
+                allow: PermissionsBitField.Default
             },
             {
                 id: server.id,
-                deny: ['VIEW_CHANNEL']
+                deny: [PermissionsBitField.Flags.ViewChannel]
             }
         ]
     });

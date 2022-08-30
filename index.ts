@@ -14,7 +14,7 @@ import {
     reactWithBasePoints
 } from "./services/DropSubmissionService";
 import {createUser, getUser, modifyNicknamePoints, modifyPoints} from "./services/UserService";
-import {Intents, User} from "discord.js";
+import {ChannelType, GatewayIntentBits, Partials, User} from "discord.js";
 import {UserExistsException} from "./exceptions/UserExistsException";
 import {NicknameLengthException} from "./exceptions/NicknameLengthException";
 import {createPointsLeaderboard} from "./services/RankService";
@@ -28,15 +28,17 @@ const rateLimitSeconds = 2;
         const serverId = process.env.SERVER;
         // https://github.com/discordjs/discord.js/issues/4980#issuecomment-723519865
         const client = new Discord.Client({intents: [
-                Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-                Intents.FLAGS.GUILD_INVITES,
-                Intents.FLAGS.GUILD_MEMBERS,
-                Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-                Intents.FLAGS.GUILD_MESSAGES,
-                Intents.FLAGS.GUILDS
+                GatewayIntentBits.GuildEmojisAndStickers,
+                GatewayIntentBits.GuildInvites,
+                GatewayIntentBits.GuildMembers,
+                GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
+                GatewayIntentBits.Guilds
             ],
-            partials: ['USER', 'REACTION', 'MESSAGE']
+            partials: [Partials.User, Partials.Reaction, Partials.Message]
         });
+
         await client.login(process.env.TOKEN);
         await connect();
 
@@ -90,7 +92,7 @@ const rateLimitSeconds = 2;
                             } catch (e) {
                                 if (process.env.REPORTING_CHANNEL_ID) {
                                     const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
-                                    if (reportingChannel && reportingChannel.isText()) {
+                                    if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                                         if (e instanceof UserExistsException) {
                                             await reportingChannel.send(`<@${userId}> is already a user in the system (potential server re-join). Please ensure their discord profile is set correctly.`);
                                         } else {
@@ -105,7 +107,7 @@ const rateLimitSeconds = 2;
             } else if (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID && process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 const privateSubmissionsChannel = client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID);
                 const messageAttachments = message.attachments.size > 0 ? [...message.attachments.values()] : null;
-                if (privateSubmissionsChannel && messageAttachments && privateSubmissionsChannel.isText()) {
+                if (privateSubmissionsChannel && messageAttachments && privateSubmissionsChannel.type === ChannelType.GuildText) {
                     const privateMessage = await privateSubmissionsChannel.send({content: `<@${message.author.id}>`, files: messageAttachments});
                     await reactWithBasePoints(privateMessage);
                 }
@@ -120,7 +122,7 @@ const rateLimitSeconds = 2;
                         const userId = message.author.id;
                         try {
                             const dbUser = await getUser(userId);
-                            if (publicSubmissionsChannel && publicSubmissionsChannel.isText() && dbUser) {
+                            if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText && dbUser) {
                                 await publicSubmissionsChannel.send(`<@${userId}> has ${dbUser.points} points`)
                             } else {
                                 return;
@@ -136,7 +138,7 @@ const rateLimitSeconds = 2;
                         if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
                             return;
                         }
-                        if (publicSubmissionsChannel && publicSubmissionsChannel.isText()) {
+                        if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText) {
                             try {
                                 const embed = await createPointsLeaderboard(server);
                                 await publicSubmissionsChannel.send({embeds: [embed]});
@@ -160,7 +162,7 @@ const rateLimitSeconds = 2;
                     }
                     lastRequestForPointsTime = message.createdTimestamp;
                     // do we have a value?
-                    if (context2 && reportingChannel && reportingChannel.isText()) {
+                    if (context2 && reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                         const operator = context2.charAt(0);
                         const userId = stripDiscordCharactersFromId(context ?? '');
                         const pointNumber = parseInt(context2.substring(1), 10);
@@ -190,7 +192,7 @@ const rateLimitSeconds = 2;
                     }
                 }
             } else {
-                if (message.channel.type === 'GUILD_TEXT' && message.channel.topic === 'application') {
+                if (message.channel.type === ChannelType.GuildText && message.channel.topic === 'application') {
                     const usernameForChannel = message.channel.name.split('-').slice(1).join('-').replace('-', ' ');
                     if (usernameForChannel.toLocaleLowerCase() !== message.author.username.toLocaleLowerCase()) {
                         return;
@@ -251,7 +253,7 @@ const rateLimitSeconds = 2;
             if (process.env.REPORTING_CHANNEL_ID) {
                 const discordUser = await client.users.fetch(member.id);
                 const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
-                if (reportingChannel && reportingChannel.isText()) {
+                if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                     try {
                         let message = `${discordUser.username} has left the server.`;
                         if (member.nickname) {

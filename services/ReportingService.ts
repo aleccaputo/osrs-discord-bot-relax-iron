@@ -2,7 +2,7 @@ import {schedule} from 'node-cron';
 import type {Client} from "discord.js";
 import dayjs from "dayjs";
 import {PointsRole, PointsRoles, TimeRole, TimeRoles} from "./constants/roles";
-import {GuildMember} from "discord.js";
+import {ChannelType, GuildMember} from "discord.js";
 import mongoose from "mongoose";
 import {connect} from "./DataService";
 import User from "../models/User";
@@ -67,7 +67,7 @@ const initializeReportMembersEligibleForTimeBasedRankUp = async (client: Client,
             console.log(membersDueForRank)
             if (membersDueForRank && membersDueForRank.length) {
                 const reportingChannel = client.channels.cache.get(reportingChannelId);
-                if (reportingChannel && reportingChannel.isText()) {
+                if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                     const message = formatRankUpMessage(membersDueForRank)
                     try {
                         await reportingChannel.send(message);
@@ -109,7 +109,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
         }).filter(x => x !== undefined && x.userId !== client.user?.id);
         if (rankUps && rankUps.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
-            if (reportingChannel && reportingChannel.isText()) {
+            if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                 const message = formatRankUpMessage(rankUps)
                 try {
                     await reportingChannel.send(message);
@@ -131,7 +131,7 @@ const initializeReportMembersNotInClan = async (client: Client, reportingChannel
         const membersWithNotInClanRole = [...currentMembers.filter(x => x.roles.cache.some(y => y.id === notInClanId)).values()];
         if (membersWithNotInClanRole.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
-            if (reportingChannel && reportingChannel.isText()) {
+            if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                 const message = formatNotInClanMessage(membersWithNotInClanRole);
                 try {
                     await reportingChannel.send(message);
@@ -166,7 +166,7 @@ export const initializeUserCsvExtract = async (client: Client, reportingChannelI
         writeStream.on('close', async () => {
             if (server) {
                 const reportingChannel = client.channels.cache.get(reportingChannelId);
-                if (reportingChannel && reportingChannel.isText()) {
+                if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
                     try {
                         await reportingChannel.send({
                             content:'Users backup csv generated.',

@@ -1,5 +1,5 @@
 import * as dotenv from "dotenv";
-import Discord, {Intents} from "discord.js";
+import Discord, {GatewayIntentBits, Partials} from "discord.js";
 import {connect} from "../services/DataService";
 
 dotenv.config();
@@ -8,14 +8,15 @@ dotenv.config();
     try {
         const serverId = process.env.SERVER;
         const client = new Discord.Client({intents: [
-                Intents.FLAGS.GUILD_EMOJIS_AND_STICKERS,
-                Intents.FLAGS.GUILD_INVITES,
-                Intents.FLAGS.GUILD_MEMBERS,
-                Intents.FLAGS.GUILD_MESSAGE_REACTIONS,
-                Intents.FLAGS.GUILD_MESSAGES,
-                Intents.FLAGS.GUILDS
+                GatewayIntentBits.GuildEmojisAndStickers,
+                GatewayIntentBits.GuildInvites,
+                GatewayIntentBits.GuildMembers,
+                GatewayIntentBits.GuildMessageReactions,
+                GatewayIntentBits.GuildMessages,
+                GatewayIntentBits.MessageContent,
+                GatewayIntentBits.Guilds
             ],
-            partials: ['USER', 'REACTION', 'MESSAGE']
+            partials: [Partials.User, Partials.Reaction, Partials.Message]
         });
 
         await client.login(process.env.TOKEN);

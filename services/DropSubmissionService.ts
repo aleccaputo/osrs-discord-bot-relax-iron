@@ -1,14 +1,12 @@
 import {
-    AnyChannel,
     Channel,
+    ChannelType,
     Emoji,
     Guild,
-    GuildMember,
     Message,
     MessageReaction,
     PartialMessageReaction,
     PartialUser,
-    TextChannel,
     User
 } from "discord.js";
 import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
@@ -77,7 +75,7 @@ export enum PointsAction {
     SUBTRACT = 'subtract'
 }
 
-export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction | PartialMessageReaction, server?: Guild, privateSubmissionsChannel?: AnyChannel, pointsAction: PointsAction = PointsAction.ADD, clientId?: string, user?: User | PartialUser) => {    const message = await reaction.message.fetch();
+export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction | PartialMessageReaction, server?: Guild, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD, clientId?: string, user?: User | PartialUser) => {    const message = await reaction.message.fetch();
     const hasReaction = message.reactions.cache.some(x => [...x.users.cache.filter(y => y.id !== clientId).values()].length > 1);
     if (hasReaction && user && pointsAction === PointsAction.ADD) {
         await reaction.users.remove(user as User);
@@ -89,7 +87,7 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
     const userId = message.content.replace('<@', '').slice(0, -1);
     const points = await processPoints(reaction.emoji, userId, pointsAction);
     const serverMember = server?.members.cache.get(userId);
-    if (points && privateSubmissionsChannel && privateSubmissionsChannel.isText()) {
+    if (points && privateSubmissionsChannel && privateSubmissionsChannel.type === ChannelType.GuildText) {
         try {
             await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
             pointsAction === PointsAction.ADD ? await message.react(whiteCheckEmoji) : await message.reactions.cache.find(x => x.emoji.name === whiteCheckEmoji)?.remove();
