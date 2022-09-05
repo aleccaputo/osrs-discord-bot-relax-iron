@@ -89,16 +89,6 @@ export const createApplicationChannel = async (server: Guild, applicant:  User |
                 allow: PermissionsBitField.Default
             },
             {
-                id: process.env.CO_OWNER_ROLE_ID ?? '',
-                type: OverwriteType.Role,
-                allow: PermissionsBitField.Default
-            },
-            {
-                id: process.env.TRIAL_MOD_ROLE_ID ?? '',
-                type: OverwriteType.Role,
-                allow: PermissionsBitField.Default
-            },
-            {
                 id: applicant.id,
                 type: OverwriteType.Member,
                 allow: [PermissionsBitField.Flags.ReadMessageHistory, PermissionsBitField.Flags.SendMessages, PermissionsBitField.Flags.ViewChannel]

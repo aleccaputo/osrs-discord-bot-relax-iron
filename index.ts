@@ -218,11 +218,8 @@ const rateLimitSeconds = 2;
                 await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.ADD, client.user?.id, user)
             }
             if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
-                console.log('In the intro channel');
                 const emoji = '✅';
-                console.log(reaction.emoji.name);
                 if (reaction.emoji.name === emoji) {
-                    console.log('was the check emoji');
                     const server = client.guilds.cache.find(guild => guild.id === serverId);
                     if (server) {
                         const guildMember = server.members.cache.get(user.id);
