@@ -61,7 +61,8 @@ export const sendQuestions = async (message: Message, server: Guild, approvalCha
 }
 
 export const createApplicationChannel = async (server: Guild, applicant:  User | PartialUser, botId?: string) => {
-    const channelName = `application-${applicant.username}`
+    const strippedUsername = applicant?.username?.replace(/[\W_]/g, '');
+    const channelName = `application-${strippedUsername}`;
     const applicationChannel = server.channels.cache.find(x => x.name === channelName);
     if (applicationChannel) {
         console.log('application channel already exists');

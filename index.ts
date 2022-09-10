@@ -194,7 +194,7 @@ const rateLimitSeconds = 2;
             } else {
                 if (message.channel.type === ChannelType.GuildText && message.channel.topic === 'application') {
                     const usernameForChannel = message.channel.name.split('-').slice(1).join('-').replace('-', ' ');
-                    if (usernameForChannel.toLocaleLowerCase() !== message.author.username.toLocaleLowerCase()) {
+                    if (usernameForChannel.toLocaleLowerCase() !== message.author.username.replace(/[\W_]/g, '').toLocaleLowerCase()) {
                         return;
                     }
                     const {command} = parseServerCommand(message.content);
