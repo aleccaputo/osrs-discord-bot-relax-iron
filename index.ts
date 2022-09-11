@@ -104,7 +104,7 @@ const rateLimitSeconds = 2;
                         }
                     }
                 }
-            } else if (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID && process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
+            } else if ((message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID || message.channel.id === process.env.HIGH_VALUE_PUBLIC_SUBMISSIONS_CHANNEL_ID) && process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 const privateSubmissionsChannel = client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID);
                 const messageAttachments = message.attachments.size > 0 ? [...message.attachments.values()] : null;
                 if (privateSubmissionsChannel && messageAttachments && privateSubmissionsChannel.type === ChannelType.GuildText) {
@@ -112,42 +112,44 @@ const rateLimitSeconds = 2;
                     await reactWithBasePoints(privateMessage);
                 }
                 else {
-                    const publicSubmissionsChannel = client.channels.cache.get(process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID ?? '');
-                    const {command} = parseServerCommand(message.content);
-                    if (command === 'mypoints') {
-                        // rate limit any requests that are checking non-discord apis (ie internal storage)
-                        if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
-                            return;
+                    if (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID) {
+                        const publicSubmissionsChannel = client.channels.cache.get(process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID ?? '');
+                        const {command} = parseServerCommand(message.content);
+                        if (command === 'mypoints') {
+                            // rate limit any requests that are checking non-discord apis (ie internal storage)
+                            if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
+                                return;
+                            }
+                            const userId = message.author.id;
+                            try {
+                                const dbUser = await getUser(userId);
+                                if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText && dbUser) {
+                                    await publicSubmissionsChannel.send(`<@${userId}> has ${dbUser.points} points`)
+                                } else {
+                                    return;
+                                }
+
+                            } catch (e) {
+                                console.error("unable to fetch a users points", e);
+                                return;
+                            }
                         }
-                        const userId = message.author.id;
-                        try {
-                            const dbUser = await getUser(userId);
-                            if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText && dbUser) {
-                                await publicSubmissionsChannel.send(`<@${userId}> has ${dbUser.points} points`)
+                        if (command === 'leaderboard') {
+                            // rate limit any requests that are checking non-discord apis (ie internal storage)
+                            if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
+                                return;
+                            }
+                            if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText) {
+                                try {
+                                    const embed = await createPointsLeaderboard(server);
+                                    await publicSubmissionsChannel.send({embeds: [embed]});
+                                } catch (e) {
+                                    console.error("unable to create leaderboard", e);
+                                    return;
+                                }
                             } else {
                                 return;
                             }
-
-                        } catch (e) {
-                            console.error("unable to fetch a users points", e);
-                            return;
-                        }
-                    }
-                    if (command === 'leaderboard') {
-                        // rate limit any requests that are checking non-discord apis (ie internal storage)
-                        if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
-                            return;
-                        }
-                        if (publicSubmissionsChannel && publicSubmissionsChannel.type === ChannelType.GuildText) {
-                            try {
-                                const embed = await createPointsLeaderboard(server);
-                                await publicSubmissionsChannel.send({embeds: [embed]});
-                            } catch (e) {
-                                console.error("unable to create leaderboard", e);
-                                return;
-                            }
-                        } else {
-                            return;
                         }
                     }
                 }
