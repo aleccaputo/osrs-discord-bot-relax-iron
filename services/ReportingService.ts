@@ -263,12 +263,14 @@ export const scheduleUserCsvExtract = (client: Client, reportingChannelId: strin
     });
 }
 
-export const scheduleNicknameIdCsvExtract = async (client: Client, reportingChannelId: string, serverId: string) => {
-    try {
-        await initializeDiscordIdToNicknameCsvExtract(client, reportingChannelId, serverId)
-    } catch (e) {
-        console.log(e);
-    }
+export const scheduleNicknameIdCsvExtract = (client: Client, reportingChannelId: string, serverId: string) => {
+    schedule('0 15 * * 5',  async () => {
+        try {
+            await initializeDiscordIdToNicknameCsvExtract(client, reportingChannelId, serverId)
+        } catch (e) {
+            console.log(e);
+        }
+    });
 }
 
 
