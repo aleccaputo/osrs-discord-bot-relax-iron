@@ -1,8 +1,10 @@
 import * as Discord from 'discord.js';
 import * as dotenv from 'dotenv';
-import {scheduleUserCsvExtract,
+import {
+    scheduleUserCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
+    scheduleNicknameIdCsvExtract,
 } from "./services/ReportingService";
 import {ApplicationQuestions} from "./services/constants/application-questions";
 import {createApplicationChannel, sendQuestions} from "./services/ApplicationService";
@@ -51,7 +53,8 @@ const rateLimitSeconds = 2;
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
-                scheduleReportMembersNotInClan(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '', process.env.NOT_IN_CLAN_ROLE_ID ?? '')
+                scheduleReportMembersNotInClan(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '', process.env.NOT_IN_CLAN_ROLE_ID ?? '');
+                await scheduleNicknameIdCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
             } catch (e) {
                 console.error(e);
                 console.error("failed to initialize reporting tasks");
