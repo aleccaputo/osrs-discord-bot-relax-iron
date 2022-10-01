@@ -1,0 +1,17 @@
+# fly.toml file generated for iron-relax-discord-bot on 2022-10-01T13:29:33-06:00
+
+app = "iron-relax-discord-bot"
+kill_signal = "SIGINT"
+kill_timeout = 5
+processes = []
+
+[build]
+  builder = "heroku/buildpacks:20"
+[processes]
+worker = "npm start"
+
+[experimental]
+  allowed_public_ports = []
+  auto_rollback = true
+
+[[services]]
