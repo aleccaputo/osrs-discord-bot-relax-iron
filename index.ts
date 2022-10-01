@@ -161,6 +161,7 @@ const rateLimitSeconds = 2;
                 const {command, context, context2} = parseServerCommand(message.content);
                 // format: !serverCommand modifyPoints @username +/-points
                 if (command === 'modifypoints') {
+                    console.log('modify points command executed');
                     // rate limit any requests that are checking non-discord apis (ie internal storage)
                     if (lastRequestForPointsTime && message.createdTimestamp - (rateLimitSeconds * 1000) < lastRequestForPointsTime) {
                         return;
