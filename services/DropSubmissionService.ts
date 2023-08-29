@@ -125,10 +125,10 @@ const processPoints = async (emoji: Emoji, userDiscordId: string, action: Points
 export const reactWithBasePoints = async (message: Message) => {
     // stupid that i can't pass an array.
     // await message.react(NumberEmojis.ONE);
-    await message.react(NumberEmojis.TWO);
+    // await message.react(NumberEmojis.TWO);
     await message.react(NumberEmojis.THREE);
     // await message.react(NumberEmojis.FOUR);
-    await message.react(NumberEmojis.FIVE);
+    // await message.react(NumberEmojis.FIVE);
     // await message.react(NumberEmojis.SIX);
     await message.react(NumberEmojis.SEVEN);
     // await message.react(NumberEmojis.EIGHT);
