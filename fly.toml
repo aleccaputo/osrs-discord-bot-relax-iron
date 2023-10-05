@@ -1,17 +1,27 @@
-# fly.toml file generated for iron-relax-discord-bot on 2022-10-01T13:29:33-06:00
+# fly.toml app configuration file generated for iron-relax-discord-bot on 2023-10-05T10:46:59-04:00
+#
+# See https://fly.io/docs/reference/configuration/ for information about how to use this file.
+#
 
 app = "iron-relax-discord-bot"
+primary_region = "sea"
 kill_signal = "SIGINT"
-kill_timeout = 5
-processes = []
+kill_timeout = "5s"
+
+[experimental]
+  auto_rollback = true
 
 [build]
   builder = "heroku/buildpacks:20"
-[processes]
-worker = "npm start"
 
-[experimental]
-  allowed_public_ports = []
-  auto_rollback = true
+[processes]
+  worker = "npm start"
 
 [[services]]
+  protocol = "tcp"
+  internal_port = 8080
+  processes = ["worker"]
+  [services.concurrency]
+    type = "connections"
+    hard_limit = 25
+    soft_limit = 20
