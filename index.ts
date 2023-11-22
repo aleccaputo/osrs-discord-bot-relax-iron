@@ -15,7 +15,7 @@ import {
     PointsAction,
     reactWithBasePoints
 } from "./services/DropSubmissionService";
-import {ChannelType, Collection, Events, GatewayIntentBits, IntentsBitField, Partials, User} from "discord.js";
+import {ChannelType, Collection, Events, GatewayIntentBits, Partials, User} from "discord.js";
 import path from "path";
 import fs from "fs";
 
