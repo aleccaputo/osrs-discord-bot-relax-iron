@@ -34,30 +34,36 @@ export const sendQuestions = async (message: Message, server: Guild, approvalCha
         filter: questionFilter,
         max: ApplicationQuestions.length
     });
-    message.channel.send(ApplicationQuestions[questionCounter++].question);
-    collector.on('collect', m => {
-        if (questionCounter < ApplicationQuestions.length) {
-            message.channel.send(ApplicationQuestions[questionCounter++].question)
-        }
-    });
-    collector.on('end', async collected => {
-        await message.channel.send(`Thank you for filling out the application, our bot will send us your application. Once your application has been reviewed and you will then be requested to meet in-game for a clan invite before your application is accepted. If you don’t work with a mod to get a in-game clan invite within the next 48 hours you will be kicked from the Discord Server and have to re apply again.`)
-        if (process.env.NOT_IN_CLAN_ROLE_ID) {
-            const guildMember = server.members.cache.get(message.author.id);
-            await guildMember?.roles.add(process.env.NOT_IN_CLAN_ROLE_ID)
-        }
-        const collectedArray = [...collected.values()].map(x => x.toString());
-        const username = collectedArray[0];
-        try {
-            await server.members.cache.get(message.author.id)?.setNickname(username);
-        } catch (e) {
-            console.log(e);
-        }
-        if (approvalChannel && approvalChannel.type === ChannelType.GuildText) {
-            const formattedApplication = formatApplication([...collected.values()].map(x => x.toString()), message.author.id);
-            await approvalChannel.send(formattedApplication);
-        }
-    })
+    if (message.channel.type === ChannelType.GuildText) {
+        message.channel.send(ApplicationQuestions[questionCounter++].question);
+        collector.on('collect', m => {
+            if (questionCounter < ApplicationQuestions.length) {
+                if (message.channel.type === ChannelType.GuildText) {
+                    message.channel.send(ApplicationQuestions[questionCounter++].question)
+                }
+            }
+        });
+        collector.on('end', async collected => {
+            if (message.channel.type === ChannelType.GuildText) {
+                await message.channel.send(`Thank you for filling out the application, our bot will send us your application. Once your application has been reviewed and you will then be requested to meet in-game for a clan invite before your application is accepted. If you don’t work with a mod to get a in-game clan invite within the next 48 hours you will be kicked from the Discord Server and have to re apply again.`)
+            }
+            if (process.env.NOT_IN_CLAN_ROLE_ID) {
+                const guildMember = server.members.cache.get(message.author.id);
+                await guildMember?.roles.add(process.env.NOT_IN_CLAN_ROLE_ID)
+            }
+            const collectedArray = [...collected.values()].map(x => x.toString());
+            const username = collectedArray[0];
+            try {
+                await server.members.cache.get(message.author.id)?.setNickname(username);
+            } catch (e) {
+                console.log(e);
+            }
+            if (approvalChannel && approvalChannel.type === ChannelType.GuildText) {
+                const formattedApplication = formatApplication([...collected.values()].map(x => x.toString()), message.author.id);
+                await approvalChannel.send(formattedApplication);
+            }
+        })
+    }
 }
 
 export const createApplicationChannel = async (server: Guild, applicant:  User | PartialUser, botId?: string) => {

@@ -4,18 +4,19 @@
 #
 
 app = "iron-relax-discord-bot"
-primary_region = "sea"
+primary_region = "dfw"
 kill_signal = "SIGINT"
 kill_timeout = "5s"
 
 [experimental]
   auto_rollback = true
 
-[build]
-  builder = "heroku/buildpacks:20"
-
 [processes]
   worker = "npm start"
+
+[env]
+  PORT = "8080"
+  PRIMARY_REGION = "dfw"
 
 [[services]]
   protocol = "tcp"
