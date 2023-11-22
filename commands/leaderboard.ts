@@ -6,7 +6,8 @@ export const command = {
         .setName('leaderboard')
         .setDescription('See Iron Relax\'s current point leaders!'),
     async execute(interaction: ChatInputCommandInteraction) {
-        if (interaction.guild) {
+        await interaction.reply('This command is still in development. Check back later!');
+/*        if (interaction.guild) {
             try {
                 const embed = await createPointsLeaderboard(interaction.guild);
                 await interaction.reply({embeds: [embed]});
@@ -18,6 +19,6 @@ export const command = {
         } else {
             await interaction.reply('There was a problem generating the leaderboard');
             return;
-        }
+        }*/
     }
 };

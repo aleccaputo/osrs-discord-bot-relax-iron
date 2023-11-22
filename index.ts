@@ -21,7 +21,7 @@ import fs from "fs";
 
 dotenv.config();
 
-;(async () => {
+(async () => {
     try {
         const serverId = process.env.SERVER;
         // https://github.com/discordjs/discord.js/issues/4980#issuecomment-723519865
@@ -58,10 +58,6 @@ dotenv.config();
         await connect();
 
         client.once('ready', async () => {
-            const guild = client.guilds.cache.find(guild => guild.id === serverId);
-            if (guild) {
-                await guild.members.fetch();
-            }
             console.log('ready');
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
@@ -115,85 +111,87 @@ dotenv.config();
                     }
                 }
             }
+        });
 
-            client.on('messageReactionAdd', async (reaction, user) => {
-                // don't respond to messages from self (the bot)
-                if (user.id === client.user?.id) {
-                    return;
-                }
-                if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
+        client.on('messageReactionAdd', async (reaction, user) => {
+            // don't respond to messages from self (the bot)
+            if (user.id === client.user?.id) {
+                return;
+            }
+            console.log('i am an interaction');
+            if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
+                console.log("am am about to process")
+                const server = client.guilds.cache.find(guild => guild.id === serverId);
+                await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.ADD, client.user?.id, user)
+                console.log("am am about to process")
+
+            }
+            if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
+                const emoji = '✅';
+                if (reaction.emoji.name === emoji) {
                     const server = client.guilds.cache.find(guild => guild.id === serverId);
-                    await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.ADD, client.user?.id, user)
-                }
-                if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
-                    const emoji = '✅';
-                    if (reaction.emoji.name === emoji) {
-                        const server = client.guilds.cache.find(guild => guild.id === serverId);
-                        if (server) {
-                            const guildMember = server.members.cache.get(user.id);
-                            if (guildMember) {
-                                const fetchedMember = await guildMember.fetch();
-                                // cant create an application channel if you already have a role
-                                if ([...fetchedMember?.roles.cache.values()].filter(x => x.name !== '@everyone').length) {
-                                    await reaction.users.remove(user as User);
-                                    return;
-                                }
-                                await createApplicationChannel(server, user, client.user?.id)
+                    if (server) {
+                        const guildMember = server.members.cache.get(user.id);
+                        if (guildMember) {
+                            const fetchedMember = await guildMember.fetch();
+                            // cant create an application channel if you already have a role
+                            if ([...fetchedMember?.roles.cache.values()].filter(x => x.name !== '@everyone').length) {
+                                await reaction.users.remove(user as User);
+                                return;
                             }
-                        }
-                        await reaction.users.remove(user as User);
-                    }
-                }
-            });
-
-            client.on('messageReactionRemove', async (reaction, user) => {
-                // don't respond to messages from self (the bot)
-                if (user.id === client.user?.id) {
-                    return;
-                }
-                if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
-                    const server = client.guilds.cache.find(guild => guild.id === serverId);
-                    await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.SUBTRACT)
-                }
-            });
-
-            client.on('guildMemberRemove', async (member) => {
-                if (process.env.REPORTING_CHANNEL_ID) {
-                    const discordUser = await client.users.fetch(member.id);
-                    const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
-                    if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
-                        try {
-                            let message = `${discordUser.username} has left the server.`;
-                            if (member.nickname) {
-                                message += ` OSRS name was ${member.nickname}.\nCheck the in game clan to see if they are still there.`
-                            }
-                            await reportingChannel.send(message);
-                        } catch (e) {
-                            // still attempt to PM the user if we weren't able to send the message to the channel
-                            console.log("unable to send server leave message")
+                            await createApplicationChannel(server, user, client.user?.id)
                         }
                     }
+                    await reaction.users.remove(user as User);
                 }
-            });
+            }
+        });
 
-            client.on(Events.InteractionCreate, async interaction => {
-                console.log('interaction create');
-                if (!interaction.isChatInputCommand()) return;
-                const command = interaction.client.commands.get(interaction.commandName);
-                console.log('command');
+        client.on('messageReactionRemove', async (reaction, user) => {
+            // don't respond to messages from self (the bot)
+            if (user.id === client.user?.id) {
+                return;
+            }
+            if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
+                const server = client.guilds.cache.find(guild => guild.id === serverId);
+                await extractMessageInformationAndProcessPoints(reaction, server, client.channels.cache.get(process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID), PointsAction.SUBTRACT)
+            }
+        });
 
-                if (!command) {
-                    console.error(`No command matching ${interaction.commandName} was found.`);
-                    return;
+        client.on('guildMemberRemove', async (member) => {
+            if (process.env.REPORTING_CHANNEL_ID) {
+                const discordUser = await client.users.fetch(member.id);
+                const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
+                if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
+                    try {
+                        let message = `${discordUser.username} has left the server.`;
+                        if (member.nickname) {
+                            message += ` OSRS name was ${member.nickname}.\nCheck the in game clan to see if they are still there.`
+                        }
+                        await reportingChannel.send(message);
+                    } catch (e) {
+                        // still attempt to PM the user if we weren't able to send the message to the channel
+                        console.log("unable to send server leave message")
+                    }
                 }
+            }
+        });
 
-                try {
-                    await command.execute(interaction);
-                } catch (error) {
-                    console.error(error);
-                    await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
-                }
-            });
+        client.on(Events.InteractionCreate, async interaction => {
+            if (!interaction.isChatInputCommand()) return;
+            const command = interaction.client.commands.get(interaction.commandName);
+
+            if (!command) {
+                console.error(`No command matching ${interaction.commandName} was found.`);
+                return;
+            }
+
+            try {
+                await command.execute(interaction);
+            } catch (error) {
+                console.error(error);
+                await interaction.reply({ content: 'There was an error while executing this command!', ephemeral: true });
+            }
         });
     } catch (e) {
         console.log(e);
