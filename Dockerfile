@@ -13,9 +13,8 @@ RUN apt-get update; apt install -y curl python-is-python3 pkg-config build-essen
 RUN mkdir /app
 WORKDIR /app
 
-# Yarn will not install any package listed in "devDependencies" when NODE_ENV is set to "production"
-# to install all modules: "yarn install --production=false"
-# Ref: https://classic.yarnpkg.com/lang/en/docs/cli/install/#toc-yarn-install-production-true-false
+# npm will not install any package listed in "devDependencies" when NODE_ENV is set to "production"
+# to install all modules: "npm install --production=false"
 
 ENV NODE_ENV production
 
@@ -33,4 +32,4 @@ WORKDIR /app
 ENV NODE_ENV production
 ENV PATH /usr/local/node/bin:$PATH
 
-CMD [ "yarn", "run", "start" ]
+CMD [ "npm", "run", "start" ]
