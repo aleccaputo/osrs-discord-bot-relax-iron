@@ -4,6 +4,8 @@ import { GuildMember } from 'discord.js';
 import { PointsAction } from './DropSubmissionService';
 import { UserExistsException } from '../exceptions/UserExistsException';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
+import { auditPoints } from './AuditService';
+import { PointType } from '../models/PointAudit';
 
 export const createUser = async (member: GuildMember | null | undefined) => {
     if (!member) {
@@ -30,11 +32,18 @@ export const getUsersByPointsDesc = () => {
     return User.find({}).sort({ points: -1 }).exec();
 };
 
-export const modifyPoints = async (user: IUser | null, pointValue: number, action: PointsAction) => {
+export const modifyPoints = async (
+    user: IUser | null,
+    pointValue: number,
+    action: PointsAction,
+    sourceDiscordId: string,
+    pointType: PointType
+) => {
     if (user) {
         const newPoints = action === PointsAction.ADD ? user.points + pointValue : Math.max(0, user.points - pointValue);
         user.points = newPoints;
         await user.save();
+        await auditPoints(sourceDiscordId, user.discordId, pointValue, pointType, action);
         return user.points;
     }
     return null;
