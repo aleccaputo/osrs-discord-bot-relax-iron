@@ -4,6 +4,7 @@ import { PointsAction } from '../services/DropSubmissionService';
 import { formatDiscordUserTag } from '../services/MessageHelpers';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
 import { isModRank } from '../utilities';
+import { PointType } from '../models/PointAudit';
 
 export const command = {
     data: new SlashCommandBuilder()
@@ -29,7 +30,13 @@ export const command = {
         if (discordUser && points && action && discordUser && isMod) {
             try {
                 const user = discordUser?.id ? await getUser(discordUser?.id) : null;
-                const newPoints = await modifyPoints(user, points, action === '+' ? PointsAction.ADD : PointsAction.SUBTRACT);
+                const newPoints = await modifyPoints(
+                    user,
+                    points,
+                    action === '+' ? PointsAction.ADD : PointsAction.SUBTRACT,
+                    (interaction.member as GuildMember).id,
+                    PointType.MANUAL
+                );
                 if (newPoints) {
                     await interaction.reply(`${formatDiscordUserTag(discordUser.id)} now has ${newPoints} points`);
                     try {

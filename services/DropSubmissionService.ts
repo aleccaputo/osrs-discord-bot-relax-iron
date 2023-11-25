@@ -1,6 +1,8 @@
 import { Channel, ChannelType, Emoji, Guild, Message, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js';
 import { getUser, modifyNicknamePoints, modifyPoints } from './UserService';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
+import { auditPoints } from './AuditService';
+import { PointType } from '../models/PointAudit';
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -74,7 +76,7 @@ export const extractMessageInformationAndProcessPoints = async (
     user?: User | PartialUser
 ) => {
     const message = await reaction.message.fetch();
-    const hasReaction = message.reactions.cache.some((x) => [...x.users.cache.filter((y) => y.id !== clientId).values()].length > 1);
+    const hasReaction = message.reactions.cache.find((x) => [...x.users.cache.filter((y) => y.id !== clientId).values()].length > 1);
     if (hasReaction && user && pointsAction === PointsAction.ADD) {
         await reaction.users.remove(user as User);
         return;
@@ -83,7 +85,7 @@ export const extractMessageInformationAndProcessPoints = async (
         return;
     }
     const userId = message.content.replace('<@', '').slice(0, -1);
-    const points = await processPoints(reaction.emoji, userId, pointsAction);
+    const points = await processPoints(reaction.emoji, userId, pointsAction, user?.id ?? '', PointType.REACTION);
     const serverMember = server?.members.cache.get(userId);
     if (points && privateSubmissionsChannel && privateSubmissionsChannel.type === ChannelType.GuildText) {
         try {
@@ -107,7 +109,13 @@ export const extractMessageInformationAndProcessPoints = async (
         }
     }
 };
-const processPoints = async (emoji: Emoji, userDiscordId: string, action: PointsAction = PointsAction.ADD) => {
+const processPoints = async (
+    emoji: Emoji,
+    userDiscordId: string,
+    action: PointsAction = PointsAction.ADD,
+    sourceDiscordId: string,
+    pointsType: PointType
+) => {
     const pointValue = convertEmojiToNumber(emoji);
     if (pointValue) {
         try {
@@ -115,7 +123,7 @@ const processPoints = async (emoji: Emoji, userDiscordId: string, action: Points
             if (!user) {
                 return null;
             }
-            const newPoints = await modifyPoints(user, pointValue, action);
+            const newPoints = await modifyPoints(user, pointValue, action, sourceDiscordId, pointsType);
             return newPoints;
         } catch (e) {
             console.error(e);
