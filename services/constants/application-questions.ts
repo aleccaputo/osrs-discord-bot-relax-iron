@@ -27,7 +27,8 @@ export const ApplicationQuestions: Array<IApplicationQuestion> = [
     {
         question: 'What content in OSRS do you enjoy the most? (Pvm / skilling etc)',
         order: 6
-    },    {
+    },
+    {
         question: 'What kind of events are you interested in?',
         order: 7
     },
@@ -51,7 +52,7 @@ export const ApplicationQuestions: Array<IApplicationQuestion> = [
         question: 'Where are you from? (EU/USA/ETC)',
         order: 12
     }
-]
+];
 
 export interface IApplicationQuestionAnswer extends IApplicationQuestion {
     answer: string;

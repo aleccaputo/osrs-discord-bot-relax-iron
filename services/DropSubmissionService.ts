@@ -1,16 +1,6 @@
-import {
-    Channel,
-    ChannelType,
-    Emoji,
-    Guild,
-    Message,
-    MessageReaction,
-    PartialMessageReaction,
-    PartialUser,
-    User
-} from "discord.js";
-import {getUser, modifyNicknamePoints, modifyPoints} from "./UserService";
-import {NicknameLengthException} from "../exceptions/NicknameLengthException";
+import { Channel, ChannelType, Emoji, Guild, Message, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js';
+import { getUser, modifyNicknamePoints, modifyPoints } from './UserService';
+import { NicknameLengthException } from '../exceptions/NicknameLengthException';
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -23,7 +13,7 @@ const NumberEmojis = {
     EIGHT: '8️⃣',
     NINE: '9️⃣',
     TEN: '🔟'
-}
+};
 
 const whiteCheckEmoji = '✅';
 
@@ -50,7 +40,7 @@ export const convertNumberToEmoji = (num: number) => {
         case 10:
             return NumberEmojis.TEN;
     }
-}
+};
 
 // wonder if the intl lib has something for this
 const convertEmojiToNumber = (emoji: Emoji) => {
@@ -68,15 +58,23 @@ const convertEmojiToNumber = (emoji: Emoji) => {
         default:
             return null;
     }
-}
+};
 
 export enum PointsAction {
     ADD = 'add',
     SUBTRACT = 'subtract'
 }
 
-export const extractMessageInformationAndProcessPoints = async (reaction: MessageReaction | PartialMessageReaction, server?: Guild, privateSubmissionsChannel?: Channel, pointsAction: PointsAction = PointsAction.ADD, clientId?: string, user?: User | PartialUser) => {    const message = await reaction.message.fetch();
-    const hasReaction = message.reactions.cache.some(x => [...x.users.cache.filter(y => y.id !== clientId).values()].length > 1);
+export const extractMessageInformationAndProcessPoints = async (
+    reaction: MessageReaction | PartialMessageReaction,
+    server?: Guild,
+    privateSubmissionsChannel?: Channel,
+    pointsAction: PointsAction = PointsAction.ADD,
+    clientId?: string,
+    user?: User | PartialUser
+) => {
+    const message = await reaction.message.fetch();
+    const hasReaction = message.reactions.cache.some((x) => [...x.users.cache.filter((y) => y.id !== clientId).values()].length > 1);
     if (hasReaction && user && pointsAction === PointsAction.ADD) {
         await reaction.users.remove(user as User);
         return;
@@ -90,13 +88,17 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
     if (points && privateSubmissionsChannel && privateSubmissionsChannel.type === ChannelType.GuildText) {
         try {
             await privateSubmissionsChannel.send(`<@${userId}> now has ${points} points`);
-            pointsAction === PointsAction.ADD ? await message.react(whiteCheckEmoji) : await message.reactions.cache.find(x => x.emoji.name === whiteCheckEmoji)?.remove();
+            pointsAction === PointsAction.ADD
+                ? await message.react(whiteCheckEmoji)
+                : await message.reactions.cache.find((x) => x.emoji.name === whiteCheckEmoji)?.remove();
             if (serverMember) {
                 await modifyNicknamePoints(points, serverMember);
             }
         } catch (e) {
             if (e instanceof NicknameLengthException) {
-                await privateSubmissionsChannel.send('Nickname is either too long or will be too long. Must be less than or equal to 32 characters.')
+                await privateSubmissionsChannel.send(
+                    'Nickname is either too long or will be too long. Must be less than or equal to 32 characters.'
+                );
                 return;
             } else {
                 await privateSubmissionsChannel.send(`Unable to modify points or nickname for <@${userId}>`);
@@ -104,7 +106,7 @@ export const extractMessageInformationAndProcessPoints = async (reaction: Messag
             }
         }
     }
-}
+};
 const processPoints = async (emoji: Emoji, userDiscordId: string, action: PointsAction = PointsAction.ADD) => {
     const pointValue = convertEmojiToNumber(emoji);
     if (pointValue) {
@@ -113,14 +115,14 @@ const processPoints = async (emoji: Emoji, userDiscordId: string, action: Points
             if (!user) {
                 return null;
             }
-            const newPoints = await modifyPoints(user, pointValue, action)
+            const newPoints = await modifyPoints(user, pointValue, action);
             return newPoints;
         } catch (e) {
             console.error(e);
         }
     }
     return null;
-}
+};
 
 export const reactWithBasePoints = async (message: Message) => {
     // stupid that i can't pass an array.
@@ -134,4 +136,4 @@ export const reactWithBasePoints = async (message: Message) => {
     // await message.react(NumberEmojis.EIGHT);
     // await message.react(NumberEmojis.NINE);
     await message.react(NumberEmojis.TEN);
-}
+};

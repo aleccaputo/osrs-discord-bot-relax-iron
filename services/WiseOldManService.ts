@@ -1,4 +1,4 @@
-import fetch from "node-fetch";
+import fetch from 'node-fetch';
 
 export const addMemberToWiseOldMan = async (inGameName: string): Promise<boolean | null> => {
     if (!process.env.WISE_OLD_MAN_GROUP_ID || !process.env.WISE_OLD_MAN_VERIFICATION_CODE) {
@@ -28,4 +28,4 @@ export const addMemberToWiseOldMan = async (inGameName: string): Promise<boolean
         console.error(e);
         return false;
     }
-}
+};

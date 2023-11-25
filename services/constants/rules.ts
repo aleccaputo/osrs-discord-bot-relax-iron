@@ -1,9 +1,10 @@
-export const Rules = 'Hello and welcome to Iron Relax’s Discord!\n' +
+export const Rules =
+    'Hello and welcome to Iron Relax’s Discord!\n' +
     '\n' +
     '▫️ Follow ALL Jagex rules.\n' +
     '▫️ Sending/Linking any harmful material such as viruses, IP grabbers or harmware results in an immediate and permanent ban. \n' +
     '▫️ Post content in the correct channels. \n' +
-    '▫️ Don\'t Spam. This includes a q p\'s. \n' +
+    "▫️ Don't Spam. This includes a q p's. \n" +
     '▫️ NSFW belongs in the NSFW section and nowhere else. \n' +
     '▫️ Swearing is allowed as long as it’s not used to harm someone personally. \n' +
     '▫️ Staff members reserve the right to kick or ban you whenever they need to. \n' +

@@ -1,6 +1,6 @@
-import * as dotenv from "dotenv";
+import * as dotenv from 'dotenv';
 
-import {REST, Routes} from 'discord.js';
+import { REST, Routes } from 'discord.js';
 import fs from 'node:fs';
 dotenv.config();
 
@@ -24,10 +24,9 @@ const rest = new REST({ version: '10' }).setToken(process.env.TOKEN ?? '');
         console.log(`Started refreshing ${commands.length} application (/) commands.`);
 
         // The put method is used to fully refresh all commands in the guild with the current set
-        const data = await rest.put(
-            Routes.applicationGuildCommands(process.env.CLIENT_ID ?? '', process.env.SERVER ?? ''),
-            { body: commands },
-        );
+        const data = await rest.put(Routes.applicationGuildCommands(process.env.CLIENT_ID ?? '', process.env.SERVER ?? ''), {
+            body: commands
+        });
 
         // @ts-ignore
         console.log(`Successfully reloaded ${data.length} application (/) commands.`);

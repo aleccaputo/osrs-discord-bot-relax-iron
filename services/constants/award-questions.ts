@@ -80,7 +80,7 @@ export const AwardQuestions: Array<IAwardQuestion> = [
         question: 'Best Pker',
         order: 20
     },
-/*    {
+    /*    {
         question: 'Best Bromance',
         order: 21
     },*/
@@ -99,8 +99,8 @@ export const AwardQuestions: Array<IAwardQuestion> = [
     {
         question: 'Cutest Noob',
         order: 25
-    },
-]
+    }
+];
 
 export interface IAwardQuestionAnswer extends IAwardQuestion {
     answer: string;

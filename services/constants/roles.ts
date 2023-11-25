@@ -1,8 +1,8 @@
-import * as dotenv from "dotenv";
+import * as dotenv from 'dotenv';
 dotenv.config();
 
 interface Role {
-    name: string,
+    name: string;
     id: string;
     order: number;
 }
@@ -41,7 +41,7 @@ export const TimeRoles: Array<TimeRole> = [
         maxMonths: 10000,
         order: 3
     }
-]
+];
 
 export interface PointsRole extends Role {
     minPoints: number;
@@ -103,7 +103,5 @@ export const PointsRoles: Array<PointsRole> = [
         minPoints: 1000,
         maxPoints: 100000000,
         order: 8
-    },
-]
-
-
+    }
+];

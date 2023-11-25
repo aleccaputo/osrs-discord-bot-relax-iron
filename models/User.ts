@@ -1,6 +1,6 @@
-import {Schema, Document, model, Model} from 'mongoose';
+import { Schema, Document, model, Model } from 'mongoose';
 
-export interface IUser extends Document{
+export interface IUser extends Document {
     id: string;
     discordId: string;
     points: number;
@@ -10,11 +10,11 @@ export interface IUser extends Document{
 const UserSchema = new Schema<IUser>({
     discordId: {
         type: String,
-        required: true,
+        required: true
     },
     joined: {
         type: String,
-        required: true,
+        required: true
     },
     points: {
         type: Number,
