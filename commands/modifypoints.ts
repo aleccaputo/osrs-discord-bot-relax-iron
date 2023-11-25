@@ -35,7 +35,8 @@ export const command = {
                     points,
                     action === '+' ? PointsAction.ADD : PointsAction.SUBTRACT,
                     (interaction.member as GuildMember).id,
-                    PointType.MANUAL
+                    PointType.MANUAL,
+                    interaction.id
                 );
                 if (newPoints) {
                     await interaction.reply(`${formatDiscordUserTag(discordUser.id)} now has ${newPoints} points`);

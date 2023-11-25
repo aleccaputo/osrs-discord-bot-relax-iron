@@ -7,13 +7,15 @@ export const auditPoints = async (
     destinationDiscordId: string,
     points: number,
     type: PointType,
-    action: PointsAction
+    action: PointsAction,
+    messageId: string
 ) => {
     await new PointAudit({
         createdAt: dayjs(new Date().toUTCString()).toISOString(),
         sourceDiscordId: sourceDiscordId,
         destinationDiscordId: destinationDiscordId,
         pointsGiven: action === PointsAction.ADD ? points : -Math.abs(points),
-        type: type
+        type: type,
+        messageId: messageId
     }).save();
 };

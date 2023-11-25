@@ -13,6 +13,7 @@ export interface IPointAudit extends Document {
     destinationDiscordId: string;
     pointsGiven: number;
     type: PointType;
+    messageId: string;
 }
 
 const PointAuditSchema = new Schema<IPointAudit>({
@@ -34,6 +35,10 @@ const PointAuditSchema = new Schema<IPointAudit>({
         default: 0
     },
     type: {
+        type: String,
+        required: true
+    },
+    messageId: {
         type: String,
         required: true
     }

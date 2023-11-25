@@ -37,13 +37,14 @@ export const modifyPoints = async (
     pointValue: number,
     action: PointsAction,
     sourceDiscordId: string,
-    pointType: PointType
+    pointType: PointType,
+    messageId: string
 ) => {
     if (user) {
         const newPoints = action === PointsAction.ADD ? user.points + pointValue : Math.max(0, user.points - pointValue);
         user.points = newPoints;
         await user.save();
-        await auditPoints(sourceDiscordId, user.discordId, pointValue, pointType, action);
+        await auditPoints(sourceDiscordId, user.discordId, pointValue, pointType, action, messageId);
         return user.points;
     }
     return null;

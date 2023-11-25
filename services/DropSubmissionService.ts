@@ -85,7 +85,7 @@ export const extractMessageInformationAndProcessPoints = async (
         return;
     }
     const userId = message.content.replace('<@', '').slice(0, -1);
-    const points = await processPoints(reaction.emoji, userId, pointsAction, user?.id ?? '', PointType.REACTION);
+    const points = await processPoints(reaction.emoji, userId, pointsAction, user?.id ?? '', PointType.REACTION, reaction.message.id);
     const serverMember = server?.members.cache.get(userId);
     if (points && privateSubmissionsChannel && privateSubmissionsChannel.type === ChannelType.GuildText) {
         try {
@@ -114,7 +114,8 @@ const processPoints = async (
     userDiscordId: string,
     action: PointsAction = PointsAction.ADD,
     sourceDiscordId: string,
-    pointsType: PointType
+    pointsType: PointType,
+    messageId: string
 ) => {
     const pointValue = convertEmojiToNumber(emoji);
     if (pointValue) {
@@ -123,7 +124,7 @@ const processPoints = async (
             if (!user) {
                 return null;
             }
-            const newPoints = await modifyPoints(user, pointValue, action, sourceDiscordId, pointsType);
+            const newPoints = await modifyPoints(user, pointValue, action, sourceDiscordId, pointsType, messageId);
             return newPoints;
         } catch (e) {
             console.error(e);
