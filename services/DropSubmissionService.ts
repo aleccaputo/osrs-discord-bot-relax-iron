@@ -1,7 +1,6 @@
 import { Channel, ChannelType, Emoji, Guild, Message, MessageReaction, PartialMessageReaction, PartialUser, User } from 'discord.js';
 import { getUser, modifyNicknamePoints, modifyPoints } from './UserService';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
-import { auditPoints } from './AuditService';
 import { PointType } from '../models/PointAudit';
 
 const NumberEmojis = {

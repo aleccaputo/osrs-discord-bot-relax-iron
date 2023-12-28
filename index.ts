@@ -1,19 +1,22 @@
 import * as Discord from 'discord.js';
+import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
-    scheduleUserCsvExtract,
+    scheduleNicknameIdCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
-    scheduleNicknameIdCsvExtract
+    scheduleUserCsvExtract
 } from './services/ReportingService';
 import { ApplicationQuestions } from './services/constants/application-questions';
 import { createApplicationChannel, sendQuestions } from './services/ApplicationService';
 import { parseServerCommand } from './services/MessageHelpers';
 import { connect } from './services/DataService';
 import { extractMessageInformationAndProcessPoints, PointsAction, reactWithBasePoints } from './services/DropSubmissionService';
-import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import path from 'path';
 import fs from 'fs';
+import { fetchPointsData } from './services/GoogleApiService';
+import { getUser, modifyNicknamePoints, modifyPoints } from './services/UserService';
+import { PointType } from './models/PointAudit';
 
 dotenv.config();
 
@@ -51,10 +54,15 @@ dotenv.config();
             }
         }
 
+        const pointsSheet = await fetchPointsData();
+        const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
+        console.log(pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
 
         client.once('ready', async () => {
+            const server = client.guilds.cache.find((guild) => guild.id === serverId);
+            await server?.members.fetch();
             console.log('ready');
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
@@ -101,6 +109,54 @@ dotenv.config();
                         files: messageAttachments
                     });
                     await reactWithBasePoints(privateMessage);
+                }
+            } else if (
+                message.channel.id === process.env.DISCORD_WEBHOOK_DROPS_CHANNEL_ID &&
+                message.author.id === process.env.DISCORD_WEBHOOK_DROPS_USER_ID
+            ) {
+                // TODO abstract this to a service
+                if (message.embeds[0]) {
+                    const embed = message.embeds[0];
+                    const embedDescription = embed.description;
+                    const item =
+                        embedDescription === 'Just got a pet.' || embedDescription === "Would've gotten a pet, but already has it."
+                            ? 'pet'
+                            : embed.description?.match(/\[(.*?)\]/);
+                    const user = embed.author?.name;
+                    if (user) {
+                        // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
+                        const possibleUser = message?.guild?.members.cache.find(
+                            (x) => x.nickname && x.nickname.toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()} [`)
+                        );
+                        console.log(possibleUser);
+                        if (item && possibleUser) {
+                            if (message.channel.type === ChannelType.GuildText) {
+                                const strippedMatch = item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
+                                const foundItem = pointsSheetLookup[strippedMatch];
+                                if (foundItem) {
+                                    console.log(embed.description);
+                                    console.log(foundItem);
+                                    const dbUser = await getUser(possibleUser.id);
+                                    const newPoints = await modifyPoints(
+                                        dbUser,
+                                        parseInt(foundItem, 10),
+                                        PointsAction.ADD,
+                                        message.author.id,
+                                        PointType.AUTOMATED,
+                                        message.id
+                                    );
+                                    if (newPoints) {
+                                        await modifyNicknamePoints(newPoints, possibleUser);
+                                        await message.channel.send(
+                                            `${strippedMatch} is ${foundItem} points. <@${possibleUser.id}> now has ${newPoints} points.`
+                                        );
+                                    }
+                                }
+                            }
+                        }
+                    }
+                } else {
+                    console.log(message.content);
                 }
             } else {
                 // TODO, can i make this a slash command
