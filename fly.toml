@@ -18,11 +18,8 @@ kill_timeout = "5s"
   PORT = "8080"
   PRIMARY_REGION = "dfw"
 
-[[services]]
-  protocol = "tcp"
-  internal_port = 8080
+[[vm]]
+  size = "shared-cpu-1x"
+  memory = "512mb"
+  cpus = 1
   processes = ["worker"]
-  [services.concurrency]
-    type = "connections"
-    hard_limit = 25
-    soft_limit = 20
