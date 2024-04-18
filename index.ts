@@ -9,7 +9,7 @@ import {
 } from './services/ReportingService';
 import { ApplicationQuestions } from './services/constants/application-questions';
 import { createApplicationChannel, sendQuestions } from './services/ApplicationService';
-import { parseServerCommand } from './services/MessageHelpers';
+import { formatDiscordUserTag, parseServerCommand } from './services/MessageHelpers';
 import { connect } from './services/DataService';
 import { extractMessageInformationAndProcessPoints, PointsAction, reactWithBasePoints } from './services/DropSubmissionService';
 import path from 'path';
@@ -56,6 +56,7 @@ dotenv.config();
 
         const pointsSheet = await fetchPointsData();
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
+        const pointsEntries = Object.entries(pointsSheetLookup);
         console.log(pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
@@ -125,21 +126,25 @@ dotenv.config();
                     const user = embed.author?.name;
                     if (user) {
                         // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
-                        const possibleUser = message?.guild?.members.cache.find(
-                            (x) => x.nickname && x.nickname.toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()} [`)
+                        const allUsers = await message?.guild?.members.fetch();
+                        const possibleUser = allUsers?.find((x) =>
+                            (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`)
                         );
-                        console.log(possibleUser);
+                        console.log(`Username from embed: ${user}`);
+                        console.log(`User found via nickname ${possibleUser}`);
                         if (item && possibleUser) {
                             if (message.channel.type === ChannelType.GuildText) {
-                                const strippedMatch = item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
-                                const foundItem = pointsSheetLookup[strippedMatch];
-                                if (foundItem) {
+                                const strippedMatchItemName = item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
+                                // fuzzy match
+                                // TODO idk if this is right
+                                const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
+                                if (foundItemPointValue) {
                                     console.log(embed.description);
-                                    console.log(foundItem);
+                                    console.log(foundItemPointValue);
                                     const dbUser = await getUser(possibleUser.id);
                                     const newPoints = await modifyPoints(
                                         dbUser,
-                                        parseInt(foundItem, 10),
+                                        parseInt(foundItemPointValue, 10),
                                         PointsAction.ADD,
                                         message.author.id,
                                         PointType.AUTOMATED,
@@ -148,15 +153,30 @@ dotenv.config();
                                     if (newPoints) {
                                         await modifyNicknamePoints(newPoints, possibleUser);
                                         await message.channel.send(
-                                            `${strippedMatch} is ${foundItem} points. <@${possibleUser.id}> now has ${newPoints} points.`
+                                            `${strippedMatchItemName} is ${foundItemPointValue} points. <@${possibleUser.id}> now has ${newPoints} points.`
+                                        );
+                                    }
+                                } else {
+                                    const privateSubmissionsChannel = client.channels.cache.get(
+                                        process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID ?? ''
+                                    );
+                                    console.info(`No item matching ${strippedMatchItemName}`);
+                                    if (privateSubmissionsChannel && privateSubmissionsChannel?.type === ChannelType.GuildText) {
+                                        await privateSubmissionsChannel.send(
+                                            `No item matching ${strippedMatchItemName}. Points not given to ${formatDiscordUserTag(
+                                                possibleUser.id
+                                            )}. Please manually check ${message.url}`
                                         );
                                     }
                                 }
                             }
                         }
+                    } else {
+                        console.log('no user found on embed');
                     }
                 } else {
                     console.log(message.content);
+                    console.log(`No message content for embed: ${message}`);
                 }
             } else {
                 // TODO, can i make this a slash command
