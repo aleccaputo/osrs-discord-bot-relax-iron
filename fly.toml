@@ -18,6 +18,10 @@ kill_timeout = "5s"
   PORT = "8080"
   PRIMARY_REGION = "dfw"
 
+[[vms]]
+    size = "shared-cpu-1x"
+    memory = "512mb"
+
 [[services]]
   protocol = "tcp"
   internal_port = 8080
