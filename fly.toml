@@ -19,8 +19,8 @@ kill_timeout = "5s"
   PRIMARY_REGION = "dfw"
 
 [[vms]]
-    size = "shared-cpu-1x"
-    memory = "512mb"
+  size = "shared-cpu-1x"
+  memory = "512mb"
 
 [[services]]
   protocol = "tcp"
