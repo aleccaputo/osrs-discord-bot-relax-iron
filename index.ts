@@ -1,19 +1,22 @@
 import * as Discord from 'discord.js';
+import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
-    scheduleUserCsvExtract,
+    scheduleNicknameIdCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
-    scheduleNicknameIdCsvExtract
+    scheduleUserCsvExtract
 } from './services/ReportingService';
 import { ApplicationQuestions } from './services/constants/application-questions';
 import { createApplicationChannel, sendQuestions } from './services/ApplicationService';
-import { parseServerCommand } from './services/MessageHelpers';
+import { formatDiscordUserTag, parseServerCommand } from './services/MessageHelpers';
 import { connect } from './services/DataService';
 import { extractMessageInformationAndProcessPoints, PointsAction, reactWithBasePoints } from './services/DropSubmissionService';
-import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import path from 'path';
 import fs from 'fs';
+import { fetchPointsData } from './services/GoogleApiService';
+import { getUser, modifyNicknamePoints, modifyPoints } from './services/UserService';
+import { PointType } from './models/PointAudit';
 
 dotenv.config();
 
@@ -51,10 +54,16 @@ dotenv.config();
             }
         }
 
+        const pointsSheet = await fetchPointsData();
+        const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
+        const pointsEntries = Object.entries(pointsSheetLookup);
+        console.log(pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
 
         client.once('ready', async () => {
+            const server = client.guilds.cache.find((guild) => guild.id === serverId);
+            await server?.members.fetch();
             console.log('ready');
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
@@ -101,6 +110,73 @@ dotenv.config();
                         files: messageAttachments
                     });
                     await reactWithBasePoints(privateMessage);
+                }
+            } else if (
+                message.channel.id === process.env.DISCORD_WEBHOOK_DROPS_CHANNEL_ID &&
+                message.author.id === process.env.DISCORD_WEBHOOK_DROPS_USER_ID
+            ) {
+                // TODO abstract this to a service
+                if (message.embeds[0]) {
+                    const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                    const embed = message.embeds[0];
+                    const embedDescription = embed.description;
+                    const item =
+                        embedDescription?.trim() == 'Just got a pet.' ||
+                        embedDescription?.trim() == "Would've gotten a pet, but already has it."
+                            ? 'pet'
+                            : embed.description?.match(/\[(.*?)\]/);
+                    const user = embed.author?.name;
+                    if (user) {
+                        // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
+                        const allUsers = await message?.guild?.members.fetch();
+                        const possibleUser = allUsers?.find((x) =>
+                            (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`)
+                        );
+                        if (item && possibleUser) {
+                            if (message.channel.type === ChannelType.GuildText) {
+                                const strippedMatchItemName = item === 'pet' ? item : item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
+                                // fuzzy match
+                                // TODO idk if this is right
+                                // const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
+                                const foundItemPointValue = pointsSheetLookup[strippedMatchItemName];
+                                if (foundItemPointValue) {
+                                    const dbUser = await getUser(possibleUser.id);
+                                    const newPoints = await modifyPoints(
+                                        dbUser,
+                                        parseInt(foundItemPointValue, 10),
+                                        PointsAction.ADD,
+                                        message.author.id,
+                                        PointType.AUTOMATED,
+                                        message.id
+                                    );
+                                    if (newPoints) {
+                                        await modifyNicknamePoints(newPoints, possibleUser);
+                                        await message.channel.send(
+                                            `${strippedMatchItemName} is ${foundItemPointValue} points. <@${possibleUser.id}> now has ${newPoints} points.`
+                                        );
+                                    }
+                                } else {
+                                    console.info(`No item matching ${strippedMatchItemName}`);
+                                    if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
+                                        await debugChannel.send(
+                                            `No item matching ${strippedMatchItemName}. Points not given to ${formatDiscordUserTag(
+                                                possibleUser.id
+                                            )}. Please manually check ${message.url}`
+                                        );
+                                    }
+                                }
+                            }
+                        } else {
+                            if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
+                                await debugChannel.send(`No user found in discord matching in game name: ${user}.`);
+                            }
+                        }
+                    } else {
+                        console.error('no user found on embed');
+                    }
+                } else {
+                    console.log(message.content);
+                    console.log(`No message content for embed: ${message}`);
                 }
             } else {
                 // TODO, can i make this a slash command
