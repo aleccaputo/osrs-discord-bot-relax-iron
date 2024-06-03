@@ -117,10 +117,12 @@ dotenv.config();
             ) {
                 // TODO abstract this to a service
                 if (message.embeds[0]) {
+                    const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
                     const embed = message.embeds[0];
                     const embedDescription = embed.description;
                     const item =
-                        embedDescription === 'Just got a pet.' || embedDescription === "Would've gotten a pet, but already has it."
+                        embedDescription?.trim() == 'Just got a pet.' ||
+                        embedDescription?.trim() == "Would've gotten a pet, but already has it."
                             ? 'pet'
                             : embed.description?.match(/\[(.*?)\]/);
                     const user = embed.author?.name;
@@ -130,17 +132,14 @@ dotenv.config();
                         const possibleUser = allUsers?.find((x) =>
                             (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`)
                         );
-                        console.log(`Username from embed: ${user}`);
-                        console.log(`User found via nickname ${possibleUser}`);
                         if (item && possibleUser) {
                             if (message.channel.type === ChannelType.GuildText) {
-                                const strippedMatchItemName = item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
+                                const strippedMatchItemName = item === 'pet' ? item : item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
                                 // fuzzy match
                                 // TODO idk if this is right
-                                const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
+                                // const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
+                                const foundItemPointValue = pointsSheetLookup[strippedMatchItemName];
                                 if (foundItemPointValue) {
-                                    console.log(embed.description);
-                                    console.log(foundItemPointValue);
                                     const dbUser = await getUser(possibleUser.id);
                                     const newPoints = await modifyPoints(
                                         dbUser,
@@ -157,12 +156,9 @@ dotenv.config();
                                         );
                                     }
                                 } else {
-                                    const privateSubmissionsChannel = client.channels.cache.get(
-                                        process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID ?? ''
-                                    );
                                     console.info(`No item matching ${strippedMatchItemName}`);
-                                    if (privateSubmissionsChannel && privateSubmissionsChannel?.type === ChannelType.GuildText) {
-                                        await privateSubmissionsChannel.send(
+                                    if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
+                                        await debugChannel.send(
                                             `No item matching ${strippedMatchItemName}. Points not given to ${formatDiscordUserTag(
                                                 possibleUser.id
                                             )}. Please manually check ${message.url}`
@@ -170,9 +166,13 @@ dotenv.config();
                                     }
                                 }
                             }
+                        } else {
+                            if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
+                                await debugChannel.send(`No user found in discord matching in game name: ${user}.`);
+                            }
                         }
                     } else {
-                        console.log('no user found on embed');
+                        console.error('no user found on embed');
                     }
                 } else {
                     console.log(message.content);
