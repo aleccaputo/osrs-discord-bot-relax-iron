@@ -8,7 +8,7 @@ const auth = new google.auth.GoogleAuth({
         type: 'service_account',
         project_id: 'iron-relax',
         private_key_id: process.env.GOOGLE_API_PRIVATE_KEY_ID,
-        private_key: process.env.GOOGLE_API_PRIVATE_KEY,
+        private_key: (process.env.GOOGLE_API_PRIVATE_KEY ?? '').split(String.raw`\n`).join('\n'),
         client_email: process.env.GOOGLE_API_CLIENT_EMAIL,
         client_id: process.env.GOOGLE_API_CLIENT_ID,
         token_url: 'https://oauth2.googleapis.com/token',
