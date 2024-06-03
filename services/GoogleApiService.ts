@@ -3,12 +3,16 @@ import * as dotenv from 'dotenv';
 
 dotenv.config();
 
+const privateKey = Buffer.from(process.env.GOOGLE_API_PRIVATE_KEY ?? '', 'base64')
+    .toString()
+    .replace(/\\n/g, '\n');
+console.log(privateKey);
 const auth = new google.auth.GoogleAuth({
     credentials: {
         type: 'service_account',
         project_id: 'iron-relax',
         private_key_id: process.env.GOOGLE_API_PRIVATE_KEY_ID,
-        private_key: (process.env.GOOGLE_API_PRIVATE_KEY ?? '').split(String.raw`\n`).join('\n'),
+        private_key: privateKey,
         client_email: process.env.GOOGLE_API_CLIENT_EMAIL,
         client_id: process.env.GOOGLE_API_CLIENT_ID,
         token_url: 'https://oauth2.googleapis.com/token',
