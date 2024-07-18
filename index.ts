@@ -203,7 +203,6 @@ dotenv.config();
             if (user.id === client.user?.id) {
                 return;
             }
-            console.log('i am an interaction');
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 console.log('am am about to process');
                 const server = client.guilds.cache.find((guild) => guild.id === serverId);

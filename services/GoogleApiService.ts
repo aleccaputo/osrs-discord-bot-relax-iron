@@ -6,7 +6,6 @@ dotenv.config();
 const privateKey = Buffer.from(process.env.GOOGLE_API_PRIVATE_KEY ?? '', 'base64')
     .toString()
     .replace(/\\n/g, '\n');
-console.log(privateKey);
 const auth = new google.auth.GoogleAuth({
     credentials: {
         type: 'service_account',
@@ -28,7 +27,7 @@ export const fetchPointsData = async () => {
     const res = await sheetsInstance.spreadsheets.values.get({
         auth,
         spreadsheetId: process.env.GOOGLE_SHEETS_POINTS_ID ?? '',
-        range: 'Blad1!A:B'
+        range: 'ItemPoints!A:B'
     });
     return res.data?.values;
 };
