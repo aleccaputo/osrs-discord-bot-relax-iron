@@ -17,6 +17,7 @@ import fs from 'fs';
 import { fetchPointsData } from './services/GoogleApiService';
 import { getUser, modifyNicknamePoints, modifyPoints } from './services/UserService';
 import { PointType } from './models/PointAudit';
+import { schedule } from 'node-cron';
 
 dotenv.config();
 
@@ -54,9 +55,20 @@ dotenv.config();
             }
         }
 
-        const pointsSheet = await fetchPointsData();
+        let pointsSheet = await fetchPointsData();
+
+        // fetch the points sheet once a day at 1am UTC to avoid having to manually restart the server when sheet changes
+        const schedulePointsSheetRefresh = () => {
+            schedule('0 1 * * *', async () => {
+                console.log('fetching new points sheet updates.');
+                pointsSheet = await fetchPointsData();
+            });
+        };
+
+        schedulePointsSheetRefresh();
+
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
-        const pointsEntries = Object.entries(pointsSheetLookup);
+
         console.log(pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
