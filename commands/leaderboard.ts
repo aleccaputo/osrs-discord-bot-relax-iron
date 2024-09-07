@@ -1,12 +1,26 @@
 import { ChatInputCommandInteraction, SlashCommandBuilder } from 'discord.js';
-import { createPointsLeaderboard } from '../services/RankService';
+import { createAllTimePointsLeaderboard, createTimePointsLeaderboard } from '../services/LeaderboardService';
 
 export const command = {
-    data: new SlashCommandBuilder().setName('leaderboard').setDescription("See Iron Relax's current point leaders!"),
+    data: new SlashCommandBuilder()
+        .setName('leaderboard')
+        .addStringOption((o) =>
+            o.setName('time').setDescription('time period').addChoices({ name: 'month', value: 'month' }, { name: 'all', value: 'all' })
+        )
+        .setDescription("See Iron Relax's current point leaders!"),
     async execute(interaction: ChatInputCommandInteraction) {
+        const time = interaction.options.getString('time');
         if (interaction.guild) {
             try {
-                const embed = await createPointsLeaderboard(interaction.guild);
+                if (time === 'all') {
+                    const embed = await createAllTimePointsLeaderboard(interaction.guild);
+                    await interaction.reply({ embeds: [embed] });
+                    return;
+                }
+
+                const today = new Date();
+                const firstOfMonth = new Date(today.getFullYear(), today.getMonth(), 1);
+                const embed = await createTimePointsLeaderboard(firstOfMonth.toISOString(), today.toISOString(), interaction.guild);
                 await interaction.reply({ embeds: [embed] });
                 return;
             } catch (e) {
