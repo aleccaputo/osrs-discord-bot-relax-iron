@@ -132,11 +132,16 @@ dotenv.config();
                     const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
                     const embed = message.embeds[0];
                     const embedDescription = embed.description;
+                    console.log(embed);
                     const item =
-                        embedDescription?.trim() == 'Just got a pet.' ||
+                        embedDescription?.trim().includes("has a funny feeling like they're being followed") ||
                         embedDescription?.trim() == "Would've gotten a pet, but already has it."
                             ? 'pet'
-                            : embed.description?.match(/\[(.*?)\]/);
+                            : embed.description
+                                  ?.match(/\[(.*?)\]/g)
+                                  ?.map((str) => str.slice(1, -1))
+                                  .slice(0, -1); // removes the []. splice removes the item source
+                    console.log(item);
                     const user = embed.author?.name;
                     if (user) {
                         // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
@@ -146,16 +151,26 @@ dotenv.config();
                         );
                         if (item && possibleUser) {
                             if (message.channel.type === ChannelType.GuildText) {
-                                const strippedMatchItemName = item === 'pet' ? item : item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
-                                // fuzzy match
-                                // TODO idk if this is right
-                                // const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
-                                const foundItemPointValue = pointsSheetLookup[strippedMatchItemName];
-                                if (foundItemPointValue) {
+                                const allItemsStripped =
+                                    item === 'pet' ? [item] : item.map((x) => x.replace(/\[|\]/g, '').toLocaleLowerCase());
+
+                                let foundLookup: Array<{ name: string; points: string }> = [];
+                                for (const itemName of allItemsStripped) {
+                                    const foundItem = pointsSheetLookup[itemName];
+                                    if (foundItem) {
+                                        foundLookup.push({
+                                            name: itemName,
+                                            points: foundItem
+                                        });
+                                    }
+                                }
+
+                                if (foundLookup.length) {
                                     const dbUser = await getUser(possibleUser.id);
+                                    const totalPoints = foundLookup.reduce((acc, cur) => acc + parseInt(cur.points), 0);
                                     const newPoints = await modifyPoints(
                                         dbUser,
-                                        parseInt(foundItemPointValue, 10),
+                                        totalPoints,
                                         PointsAction.ADD,
                                         message.author.id,
                                         PointType.AUTOMATED,
@@ -163,15 +178,20 @@ dotenv.config();
                                     );
                                     if (newPoints) {
                                         await modifyNicknamePoints(newPoints, possibleUser);
+                                        let formattedConfirmationString = '';
+                                        foundLookup.forEach((x) => {
+                                            formattedConfirmationString += `${x.name} is ${x.points} points. <@${possibleUser.id}> now has ${newPoints} points.\n`;
+                                        });
                                         await message.channel.send(
-                                            `${strippedMatchItemName} is ${foundItemPointValue} points. <@${possibleUser.id}> now has ${newPoints} points.`
+                                            formattedConfirmationString ||
+                                                `new points: ${newPoints}, but for some reason i can't tell you the formatted string...`
                                         );
                                     }
                                 } else {
-                                    console.info(`No item matching ${strippedMatchItemName}`);
+                                    console.info(`No item matching ${allItemsStripped.toString()}`);
                                     if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
                                         await debugChannel.send(
-                                            `No item matching ${strippedMatchItemName}. Points not given to ${formatDiscordUserTag(
+                                            `No item matching ${allItemsStripped.toString()}. Points not given to ${formatDiscordUserTag(
                                                 possibleUser.id
                                             )}. Please manually check ${message.url}`
                                         );
