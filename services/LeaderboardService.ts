@@ -13,8 +13,14 @@ export const createAllTimePointsLeaderboard = async (guild?: Guild) => {
 
     const usersWhoAreStillInServer = await getUsersStillInServer(guild);
     const topTenUsers = usersWhoAreStillInServer.slice(0, 20);
+
+    const allMembers = await guild.members.fetch();
+
     const formatted = topTenUsers.map(
-        (x, idx) => `${convertNumberToEmoji(idx + 1) ?? idx + 1} ${formatDiscordUserTag(x.discordId)}: ${x.points} points`
+        (x, idx) =>
+            `${convertNumberToEmoji(idx + 1) ?? idx + 1} ${
+                allMembers.find((y) => y.id.toString() === x.discordId)?.nickname ?? formatDiscordUserTag(x.discordId)
+            }: ${x.points} points`
     );
     const test: EmbedField = { name: 'Top 20', value: formatted.join('\r\n\r\n'), inline: false };
 
@@ -39,6 +45,8 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
         leaderboardForTimePeriodPromise
     ]);
 
+    const allMembers = await guild.members.fetch();
+
     const usersInServerLookup = usersWhoAreStillInServer.reduce(
         (acc, obj) => {
             acc[obj.discordId] = obj;
@@ -50,7 +58,10 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
     const filteredLeaderboard = leaderboardForTimePeriod.filter((x) => usersInServerLookup[x.discordId]).slice(0, 10);
 
     const formatted = filteredLeaderboard.map(
-        (x, idx) => `${convertNumberToEmoji(idx + 1) ?? idx + 1} ${formatDiscordUserTag(x.discordId)}: ${x.points} points`
+        (x, idx) =>
+            `${convertNumberToEmoji(idx + 1) ?? idx + 1} ${
+                allMembers.find((y) => y.id.toString() === x.discordId)?.nickname ?? formatDiscordUserTag(x.discordId)
+            }: ${x.points} points`
     );
 
     const monthStringName = new Date().toLocaleString('en-US', { month: 'long' });
