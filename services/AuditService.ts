@@ -25,7 +25,7 @@ export const auditPoints = async (
     }).save();
 };
 
-export const getLeaderboardAuditRecordsForTimePeriod = async (startDate: string, endDate: string, top = 5) => {
+export const getLeaderboardAuditRecordsForTimePeriod = async (startDate: string, endDate: string) => {
     const records = await PointAudit.find({
         createdAt: {
             $gte: startDate,
@@ -44,7 +44,6 @@ export const getLeaderboardAuditRecordsForTimePeriod = async (startDate: string,
 
     const sortedLeaderboard: AuditLeaderboardModel[] = Object.entries(pointsByDiscordId)
         .sort(([, pointsA], [, pointsB]) => pointsB - pointsA)
-        .slice(0, top)
         .map(([discordId, points]) => ({ discordId, points }));
 
     return sortedLeaderboard;

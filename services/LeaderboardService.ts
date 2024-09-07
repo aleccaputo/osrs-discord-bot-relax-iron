@@ -4,6 +4,7 @@ import { formatDiscordUserTag } from './MessageHelpers';
 import { convertNumberToEmoji } from './DropSubmissionService';
 import { hasMemberRole } from '../utilities';
 import { getLeaderboardAuditRecordsForTimePeriod } from './AuditService';
+import { IUser } from '../models/User';
 
 export const createAllTimePointsLeaderboard = async (guild?: Guild) => {
     if (!guild) {
@@ -30,9 +31,25 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
         return {};
     }
 
-    const leaderboardForTimePeriod = await getLeaderboardAuditRecordsForTimePeriod(startDate, endDate, 10);
+    const usersWhoAreStillInServerPromise = getUsersStillInServer(guild);
+    const leaderboardForTimePeriodPromise = getLeaderboardAuditRecordsForTimePeriod(startDate, endDate);
 
-    const formatted = leaderboardForTimePeriod.map(
+    const [usersWhoAreStillInServer, leaderboardForTimePeriod] = await Promise.all([
+        usersWhoAreStillInServerPromise,
+        leaderboardForTimePeriodPromise
+    ]);
+
+    const usersInServerLookup = usersWhoAreStillInServer.reduce(
+        (acc, obj) => {
+            acc[obj.discordId] = obj;
+            return acc;
+        },
+        {} as Record<string, IUser>
+    );
+
+    const filteredLeaderboard = leaderboardForTimePeriod.filter((x) => usersInServerLookup[x.discordId]).slice(0, 10);
+
+    const formatted = filteredLeaderboard.map(
         (x, idx) => `${convertNumberToEmoji(idx + 1) ?? idx + 1} ${formatDiscordUserTag(x.discordId)}: ${x.points} points`
     );
 
