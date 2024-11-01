@@ -11,13 +11,17 @@ import { ApplicationQuestions } from './services/constants/application-questions
 import { createApplicationChannel, sendQuestions } from './services/ApplicationService';
 import { formatDiscordUserTag, parseServerCommand } from './services/MessageHelpers';
 import { connect } from './services/DataService';
-import { extractMessageInformationAndProcessPoints, PointsAction, reactWithBasePoints } from './services/DropSubmissionService';
+import {
+    extractMessageInformationAndProcessPoints,
+    PointsAction,
+    processDinkPost,
+    reactWithBasePoints
+} from './services/DropSubmissionService';
 import path from 'path';
 import fs from 'fs';
 import { fetchPointsData } from './services/GoogleApiService';
-import { getUser, modifyNicknamePoints, modifyPoints } from './services/UserService';
-import { PointType } from './models/PointAudit';
 import { schedule } from 'node-cron';
+import { ItemNotFoundException } from './exceptions/ItemNotFoundException';
 
 dotenv.config();
 
@@ -74,6 +78,7 @@ dotenv.config();
         await connect();
 
         client.once('ready', async () => {
+            // schedule cronjobs
             const server = client.guilds.cache.find((guild) => guild.id === serverId);
             await server?.members.fetch();
             console.log('ready');
@@ -108,7 +113,7 @@ dotenv.config();
                 return;
             }
 
-            // handle forwarding drop submissions to private channel
+            // handle forwarding drop submissions to private channel for manual point assignment
             if (
                 (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID ||
                     message.channel.id === process.env.HIGH_VALUE_PUBLIC_SUBMISSIONS_CHANNEL_ID) &&
@@ -127,89 +132,23 @@ dotenv.config();
                 message.channel.id === process.env.DISCORD_WEBHOOK_DROPS_CHANNEL_ID &&
                 message.author.id === process.env.DISCORD_WEBHOOK_DROPS_USER_ID
             ) {
-                // TODO abstract this to a service
+                // handle webhook automated points
                 if (message.embeds[0]) {
-                    const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
-                    const embed = message.embeds[0];
-                    const embedDescription = embed.description;
-                    console.log(embed);
-                    const item =
-                        embedDescription?.trim().includes("has a funny feeling like they're being followed") ||
-                        embedDescription?.trim() == "Would've gotten a pet, but already has it."
-                            ? 'pet'
-                            : embed.description
-                                  ?.match(/\[(.*?)\]/g)
-                                  ?.map((str) => str.slice(1, -1))
-                                  .slice(0, -1); // removes the []. splice removes the item source
-                    console.log(item);
-                    const user = embed.author?.name;
-                    if (user) {
-                        // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
-                        const allUsers = await message?.guild?.members.fetch();
-                        const possibleUser = allUsers?.find((x) =>
-                            (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`)
-                        );
-                        if (item && possibleUser) {
-                            if (message.channel.type === ChannelType.GuildText) {
-                                const allItemsStripped =
-                                    item === 'pet' ? [item] : item.map((x) => x.replace(/\[|\]/g, '').toLocaleLowerCase());
-
-                                let foundLookup: Array<{ name: string; points: string }> = [];
-                                for (const itemName of allItemsStripped) {
-                                    const foundItem = pointsSheetLookup[itemName];
-                                    if (foundItem) {
-                                        foundLookup.push({
-                                            name: itemName,
-                                            points: foundItem
-                                        });
-                                    }
-                                }
-
-                                if (foundLookup.length) {
-                                    const dbUser = await getUser(possibleUser.id);
-                                    const totalPoints = foundLookup.reduce((acc, cur) => acc + parseInt(cur.points), 0);
-                                    const newPoints = await modifyPoints(
-                                        dbUser,
-                                        totalPoints,
-                                        PointsAction.ADD,
-                                        message.author.id,
-                                        PointType.AUTOMATED,
-                                        message.id
-                                    );
-                                    if (newPoints) {
-                                        await modifyNicknamePoints(newPoints, possibleUser);
-                                        let formattedConfirmationString = '';
-                                        foundLookup.forEach((x) => {
-                                            formattedConfirmationString += `${x.name} is ${x.points} points. <@${possibleUser.id}> now has ${newPoints} points.\n`;
-                                        });
-                                        await message.channel.send(
-                                            formattedConfirmationString ||
-                                                `new points: ${newPoints}, but for some reason i can't tell you the formatted string...`
-                                        );
-                                    }
-                                } else {
-                                    console.info(`No item matching ${allItemsStripped.toString()}`);
-                                    if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
-                                        await debugChannel.send(
-                                            `No item matching ${allItemsStripped.toString()}. Points not given to ${formatDiscordUserTag(
-                                                possibleUser.id
-                                            )}. Please manually check ${message.url}`
-                                        );
-                                    }
-                                }
-                            }
-                        } else {
-                            if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
-                                await debugChannel.send(`No user found in discord matching in game name: ${user}.`);
+                    try {
+                        await processDinkPost(message, pointsSheetLookup);
+                    } catch (e) {
+                        if (e instanceof ItemNotFoundException) {
+                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                await debugChannel.send(e.message);
                             }
                         }
-                    } else {
-                        console.error('no user found on embed');
                     }
                 } else {
                     console.log(message.content);
                     console.log(`No message content for embed: ${message}`);
                 }
+                // handle clan application in private channel
             } else {
                 // TODO, can i make this a slash command
                 if (message.channel.type === ChannelType.GuildText && message.channel.topic === 'application') {
@@ -235,8 +174,8 @@ dotenv.config();
             if (user.id === client.user?.id) {
                 return;
             }
+            // handle emoji reactions for manual point processing
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
-                console.log('am am about to process');
                 const server = client.guilds.cache.find((guild) => guild.id === serverId);
                 await extractMessageInformationAndProcessPoints(
                     reaction,
@@ -248,6 +187,7 @@ dotenv.config();
                 );
                 console.log('am am about to process');
             }
+            // handle creating the private application message when new users click the check in the welcome channel
             if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
                 const emoji = '✅';
                 if (reaction.emoji.name === emoji) {
@@ -274,6 +214,7 @@ dotenv.config();
             if (user.id === client.user?.id) {
                 return;
             }
+            // if a reaction is removed for manual points, make sure to subtract those points from the user
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 const server = client.guilds.cache.find((guild) => guild.id === serverId);
                 await extractMessageInformationAndProcessPoints(
@@ -287,6 +228,7 @@ dotenv.config();
 
         client.on('guildMemberRemove', async (member) => {
             if (process.env.REPORTING_CHANNEL_ID) {
+                // inform moderators when a member leaves the server and when their nickname in the server was
                 const discordUser = await client.users.fetch(member.id);
                 const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
                 if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
@@ -304,6 +246,7 @@ dotenv.config();
             }
         });
 
+        // handle all slash commands (logic in ./commands/
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isChatInputCommand()) return;
             const command = interaction.client.commands.get(interaction.commandName);

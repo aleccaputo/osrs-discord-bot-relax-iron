@@ -2,6 +2,8 @@ import { Channel, ChannelType, Emoji, Guild, Message, MessageReaction, PartialMe
 import { getUser, modifyNicknamePoints, modifyPoints } from './UserService';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
 import { PointType } from '../models/PointAudit';
+import { formatDiscordUserTag } from './MessageHelpers';
+import { ItemNotFoundException } from '../exceptions/ItemNotFoundException';
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -144,4 +146,83 @@ export const reactWithBasePoints = async (message: Message) => {
     // await message.react(NumberEmojis.EIGHT);
     // await message.react(NumberEmojis.NINE);
     await message.react(NumberEmojis.TEN);
+};
+
+/**
+ * picks apart an embed from the Dink bot, looks up the number of points, and then gives them to the user
+ * @param message the Discord.Message that was sent and contains the embed
+ * @param pointsSheetLookup A Record<string, string> containing {itemName: pointValue}
+ */
+export const processDinkPost = async (message: Message, pointsSheetLookup: Record<string, string>) => {
+    const embed = message.embeds[0];
+    const embedDescription = embed.description;
+    console.log(embed);
+    const item =
+        embedDescription?.trim().includes("has a funny feeling like they're being followed") ||
+        embedDescription?.trim() == "Would've gotten a pet, but already has it."
+            ? 'pet'
+            : embed.description
+                  ?.match(/\[(.*?)\]/g)
+                  ?.map((str) => str.slice(1, -1))
+                  .slice(0, -1); // removes the []. splice removes the item source
+    const user = embed.author?.name;
+    if (user) {
+        // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
+        const allUsers = await message?.guild?.members.fetch();
+        const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`));
+        // if i have an item and i found a user in the discord server
+        if (item && possibleUser) {
+            if (message.channel.type === ChannelType.GuildText) {
+                const allItemsStripped = item === 'pet' ? [item] : item.map((x) => x.replace(/\[|\]/g, '').toLocaleLowerCase());
+                let foundLookup: Array<{ name: string; points: string }> = [];
+                for (const itemName of allItemsStripped) {
+                    const foundItem = pointsSheetLookup[itemName];
+                    if (foundItem) {
+                        foundLookup.push({
+                            name: itemName,
+                            points: foundItem
+                        });
+                    }
+                }
+
+                // i found an item, now modify the backing user points
+                if (foundLookup.length) {
+                    const dbUser = await getUser(possibleUser.id);
+                    const totalPoints = foundLookup.reduce((acc, cur) => acc + parseInt(cur.points), 0);
+                    const newPoints = await modifyPoints(
+                        dbUser,
+                        totalPoints,
+                        PointsAction.ADD,
+                        message.author.id,
+                        PointType.AUTOMATED,
+                        message.id
+                    );
+                    if (newPoints) {
+                        await modifyNicknamePoints(newPoints, possibleUser);
+                        let formattedConfirmationString = '';
+                        foundLookup.forEach((x) => {
+                            formattedConfirmationString += `${x.name} is ${x.points} points. <@${possibleUser.id}> now has ${newPoints} points.\n`;
+                        });
+                        await message.channel.send(
+                            formattedConfirmationString ||
+                                `new points: ${newPoints}, but for some reason i can't tell you the formatted string...`
+                        );
+                    }
+                } else {
+                    console.info(`No item matching ${allItemsStripped.toString()}`);
+                    throw new ItemNotFoundException(
+                        `No item matching ${allItemsStripped.toString()}. Points not given to ${formatDiscordUserTag(
+                            possibleUser.id
+                        )}. Please manually check ${message.url}`
+                    );
+                }
+            }
+        } else {
+            console.log(`No user found in discord matching in game name: ${user}.`);
+            throw new ItemNotFoundException(`No user found in discord matching in game name: ${user}.`);
+        }
+    } else {
+        console.error('no user found on embed');
+        throw new ItemNotFoundException('no user found on embed');
+    }
 };
