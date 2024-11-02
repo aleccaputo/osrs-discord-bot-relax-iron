@@ -15,6 +15,7 @@ import {
     extractMessageInformationAndProcessPoints,
     PointsAction,
     processDinkPost,
+    processNonembedDinkPost,
     reactWithBasePoints
 } from './services/DropSubmissionService';
 import path from 'path';
@@ -22,8 +23,6 @@ import fs from 'fs';
 import { fetchPointsData } from './services/GoogleApiService';
 import { schedule } from 'node-cron';
 import { ItemNotFoundException } from './exceptions/ItemNotFoundException';
-
-// test
 
 dotenv.config();
 
@@ -75,7 +74,11 @@ dotenv.config();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
 
-        // console.log(pointsSheetLookup);
+        // Add some temporary test records
+        const temp_items: Array<string> = ['bones', 'cowhide', 'raw beef', 'bronze spear', 'bronze sq shield', 'hammer'];
+        temp_items.forEach(item => pointsSheetLookup[item] = '1');
+
+        console.log("Points sheet: ", pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
 
@@ -147,8 +150,16 @@ dotenv.config();
                         }
                     }
                 } else {
-                    console.log(message.content);
-                    console.log(`No message content for embed: ${message}`);
+                    try {
+                        await processNonembedDinkPost(message, pointsSheetLookup);
+                    } catch (e) {
+                        if (e instanceof ItemNotFoundException) {
+                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                await debugChannel.send(e.message);
+                            }
+                        }
+                    }
                 }
                 // handle clan application in private channel
             } else {
