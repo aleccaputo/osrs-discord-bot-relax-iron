@@ -23,6 +23,8 @@ import { fetchPointsData } from './services/GoogleApiService';
 import { schedule } from 'node-cron';
 import { ItemNotFoundException } from './exceptions/ItemNotFoundException';
 
+// test
+
 dotenv.config();
 
 (async () => {
