@@ -73,7 +73,7 @@ dotenv.config();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
 
-        console.log(pointsSheetLookup);
+        // console.log(pointsSheetLookup);
         await client.login(process.env.TOKEN);
         await connect();
 
