@@ -151,50 +151,52 @@ export const reactWithBasePoints = async (message: Message) => {
 export const processNonembedDinkPost = async (message: Message, pointsSheetLookup: Record<string, string>) => {
     // Handle submissions that are not embeded
     // console.log(message);
-    console.log(message.content);
-    console.log(`No message content for embed: ${message}`);
+    console.debug(message.content);
 
     if (message.channel.type !== ChannelType.GuildText) {
-        console.log("The message was not posted in the correct channel: ", message.channel.type);
+        console.error("The message was not posted in the correct channel: ", message.channel.type);
         return;
     }
 
     const matches = message.content.match(/\*\*([\s\S]*?)\*\*/g);
-    console.log("Matches: ", matches);
+    console.debug("Matches: ", matches);
 
     if (matches === null) {
-        console.log("No bold text found in the message content: ", message.content);
+        console.error("No bold text found in the message content: ", message.content);
         return;
     }
 
     const pieces = matches.map(part => part.replace(/\*/g, '')).filter(part => (part.length > 0 && !part.includes('*')));
-    console.log("Pieces: ", pieces);
+    console.debug("Pieces: ", pieces);
+
+    if (pieces.length !== 3) {
+        console.error("The message did not return 3 pieces: ", pieces);
+        return;
+    }
 
     const player = pieces[0];
-    const loot = pieces[1].split("\n").map(piece => (
-        {
-            'item': piece.substring(piece.indexOf(" ", 2) + 1, piece.lastIndexOf(" ")),
-            'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
-        })
-    );
+    const loot = pieces[1].split("\n").map(piece => ({
+        'item': piece.substring(piece.indexOf(" ", 2) + 1, piece.lastIndexOf(" ")),
+        'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
+    }));
     const source = pieces[2];
 
-    console.log("Player: ", player);
-    console.log("Loot: ", loot);
-    console.log("Source: ", source);
+    console.debug("Player: ", player);
+    console.debug("Loot: ", loot);
+    console.debug("Source: ", source);
     
     const allUsers = await message?.guild?.members.fetch();
     const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(player.toLocaleLowerCase()));
 
-    console.log("Possible user: ", possibleUser);
+    console.debug("Possible user: ", possibleUser);
     
     if (!possibleUser) {
-        console.log("No possible user found: ", possibleUser);
+        console.error("No possible user found: ", possibleUser);
         return;
     }
 
     if (loot.length === 0) {
-        console.log("No loot found: ", loot);
+        console.error("No loot found: ", loot);
         return;
     }
 
@@ -203,15 +205,13 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
 
     for (let i = 0; i < loot.length; ++i) {
         const item_name = loot[i].item.toLocaleLowerCase();
-
         if (!(item_name in pointsSheetLookup)) {
-            console.log(`${loot[i].item} (${item_name}) does not exist on the list of items that are eligible!`);
+            console.warn(`${loot[i].item} (${item_name}) does not exist on the list of items that are eligible!`);
             continue;
         }
 
         const points = parseInt(pointsSheetLookup[item_name]);
         total_points += points;
-
         valid_loot.push({
             name: loot[i].item,
             points: points,
@@ -220,14 +220,11 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }
 
     if (valid_loot.length === 0) {
-        console.log("No items are worth points: ", valid_loot);
+        console.error("No items are worth points: ", valid_loot);
         return;
     }
 
-    console.log("We made it...", valid_loot);
-
     const db_user = await getUser(possibleUser.id);
-    console.log("Fetched user: ", db_user);
     const current_points = db_user?.points;
     const new_points = await modifyPoints(
         db_user,
@@ -239,11 +236,11 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     );
 
     if (new_points === null) {
-        console.log("Could not modify points: ", valid_loot, db_user, new_points);
+        console.error("Could not modify points: ", valid_loot, db_user, new_points);
         return;
     }
 
-    console.log("Modified points: ", new_points);
+    console.debug("Modified points: ", new_points);
     await modifyNicknamePoints(new_points, possibleUser);
 
     let formattedConfirmationString = '';
