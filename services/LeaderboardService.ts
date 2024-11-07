@@ -64,7 +64,7 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
             }: ${x.points} points`
     );
 
-    const monthStringName = new Date().toLocaleString('en-US', { month: 'long' });
+    const monthStringName = new Date(startDate).toLocaleString('en-US', { month: 'long' });
     const embed: EmbedField = { name: `Most points earned in ${monthStringName}`, value: formatted.join('\r\n\r\n'), inline: false };
 
     return {
