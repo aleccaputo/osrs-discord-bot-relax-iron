@@ -5,7 +5,10 @@ export const command = {
     data: new SlashCommandBuilder()
         .setName('leaderboard')
         .addStringOption((o) =>
-            o.setName('time').setDescription('time period').addChoices({ name: 'month', value: 'month' }, { name: 'all', value: 'all' })
+            o
+                .setName('time')
+                .setDescription('time period')
+                .addChoices({ name: 'month', value: 'month' }, { name: 'all', value: 'all' }, { name: 'lastmonth', value: 'lastmonth' })
         )
         .setDescription("See Iron Relax's current point leaders!"),
     async execute(interaction: ChatInputCommandInteraction) {
@@ -14,6 +17,21 @@ export const command = {
             try {
                 if (time === 'all') {
                     const embed = await createAllTimePointsLeaderboard(interaction.guild);
+                    await interaction.reply({ embeds: [embed] });
+                    return;
+                }
+
+                if (time === 'lastmonth') {
+                    const now = new Date();
+
+                    const firstDayLastMonth = new Date(now.getFullYear(), now.getMonth() - 1, 1);
+                    const lastDayLastMonth = new Date(now.getFullYear(), now.getMonth(), 0);
+
+                    const embed = await createTimePointsLeaderboard(
+                        firstDayLastMonth.toISOString(),
+                        lastDayLastMonth.toISOString(),
+                        interaction.guild
+                    );
                     await interaction.reply({ embeds: [embed] });
                     return;
                 }
