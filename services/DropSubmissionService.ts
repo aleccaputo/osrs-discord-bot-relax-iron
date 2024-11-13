@@ -169,7 +169,13 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     const pieces = matches.map(part => part.replace(/\*/g, '')).filter(part => (part.length > 0 && !part.includes('*')));
     console.debug("Pieces: ", pieces);
 
-    if (pieces.length !== 3) {
+    if (pieces.length === 1 && message.content.includes("** just got a pet!")) {
+        // Add "1 x " & " ()" so it matches the expected input later
+        pieces[1] = "1 x Pet ()";
+        // Could add a lookup here to get the source of the pet
+        // The "Pet" section of dink does not have the %SOURCE% parameter available
+        pieces[2] = "unknown";
+    } else if (pieces.length !== 3) {
         console.error("The message did not return 3 pieces: ", pieces);
         return;
     }
