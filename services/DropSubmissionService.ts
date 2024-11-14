@@ -252,7 +252,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
 
     let formattedConfirmationString = '';
     valid_loot.forEach((x) => {
-        formattedConfirmationString += `${x.quantity} x ${x.name} (${x.points}) is ${x.points * x.quantity} points. <@${possibleUser.id}> now has ${new_points} points.\n`;
+        formattedConfirmationString += `**${x.quantity} x ${x.name} (${x.points}pts)** is **${x.points * x.quantity} points**. <@${possibleUser.id}> now has **${new_points} points**\n`;
     });
 
     await message.channel.send(
