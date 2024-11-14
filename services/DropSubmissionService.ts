@@ -207,7 +207,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }
 
     const valid_loot: Array<{name: string; points: number; quantity: number}> = [];
-    let total_points = 0;
+    let points_to_add = 0;
 
     for (let i = 0; i < loot.length; ++i) {
         const item_name = loot[i].item.toLocaleLowerCase();
@@ -217,7 +217,8 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         }
 
         const points = parseInt(pointsSheetLookup[item_name]);
-        total_points += points;
+
+        points_to_add += points * loot[i].quantity;
         valid_loot.push({
             name: loot[i].item,
             points: points,
@@ -231,10 +232,10 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }
 
     const db_user = await getUser(possibleUser.id);
-    const current_points = db_user?.points;
+    // const current_points = db_user?.points;
     const new_points = await modifyPoints(
         db_user,
-        total_points,
+        points_to_add,
         PointsAction.ADD,
         message.author.id,
         PointType.AUTOMATED,
@@ -251,7 +252,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
 
     let formattedConfirmationString = '';
     valid_loot.forEach((x) => {
-        formattedConfirmationString += `${x.name} is ${x.points} points. <@${possibleUser.id}> now has ${new_points} points.\n`;
+        formattedConfirmationString += `${x.quantity} x ${x.name} (${x.points}) is ${x.points * x.quantity} points. <@${possibleUser.id}> now has ${new_points} points.\n`;
     });
 
     await message.channel.send(
