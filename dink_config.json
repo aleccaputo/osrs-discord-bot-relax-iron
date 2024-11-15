@@ -6,7 +6,7 @@
     "questEnabled": false,
     "deathNotifMessage": "%USERNAME% has died...",
     "collectionNotifMessage": "%USERNAME% has added %ITEM% to their collection",
-    "levelNotifyVirtual": true,
+    "levelNotifyVirtual": false,
     "questNotifMessage": "%USERNAME% has completed a quest: %QUEST%",
     "killCountEnabled": false,
     "slayerNotifMessage": "%USERNAME% has completed a slayer task: %TASK%, getting %POINTS% points and making that %TASKCOUNT% tasks completed",
@@ -133,5 +133,8 @@
     "lootRedirectPlayerKill": false,
     "gambleEnabled": false,
     "collectionWebhook": "",
+    "levelWebhook": "",
+    "lootWebhook": "",
+    "petWebhook": "",
     "primaryWebhook": ""
 }
