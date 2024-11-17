@@ -150,7 +150,6 @@ export const reactWithBasePoints = async (message: Message) => {
 
 export const processNonembedDinkPost = async (message: Message, pointsSheetLookup: Record<string, string>) => {
     // Handle submissions that are not embeded
-    // console.log(message);
     console.debug(message.content);
 
     if (message.channel.type !== ChannelType.GuildText) {
@@ -187,14 +186,14 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }));
     const source = pieces[2];
 
-    console.debug("Player: ", player);
-    console.debug("Loot: ", loot);
-    console.debug("Source: ", source);
+    // console.debug("Player: ", player);
+    // console.debug("Loot: ", loot);
+    // console.debug("Source: ", source);
     
     const allUsers = await message?.guild?.members.fetch();
     const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(player.toLocaleLowerCase()));
 
-    console.debug("Possible user: ", possibleUser);
+    // console.debug("Possible user: ", possibleUser);
     
     if (!possibleUser) {
         console.error("No possible user found: ", possibleUser);
@@ -247,12 +246,12 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         return;
     }
 
-    console.debug("Modified points: ", new_points);
+    // console.debug("Modified points: ", new_points);
     await modifyNicknamePoints(new_points, possibleUser);
 
     let formattedConfirmationString = '';
     valid_loot.forEach((x) => {
-        formattedConfirmationString += `**${x.quantity} x ${x.name} (${x.points}pts)** is **${x.points * x.quantity} points**. <@${possibleUser.id}> now has **${new_points} points**\n`;
+        formattedConfirmationString += `**${x.quantity} x ${x.name}** is **${x.points * x.quantity} points**. <@${possibleUser.id}> now has **${new_points} points**\n`;
     });
 
     await message.channel.send(

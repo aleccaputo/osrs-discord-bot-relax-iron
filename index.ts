@@ -73,12 +73,8 @@ dotenv.config();
         schedulePointsSheetRefresh();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
-
-        // Add some temporary test records
-        const temp_items: Array<string> = ['bones', 'cowhide', 'raw beef', 'bronze spear', 'bronze sq shield', 'hammer'];
-        temp_items.forEach(item => pointsSheetLookup[item] = '1');
-
         console.log("Points sheet: ", pointsSheetLookup);
+        
         await client.login(process.env.TOKEN);
         await connect();
 
