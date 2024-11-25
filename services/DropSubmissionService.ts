@@ -184,57 +184,40 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         'item': piece.substring(piece.indexOf(" ", 2) + 1, piece.lastIndexOf(" ")),
         'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
     }));
-    const source = pieces[2];
-
-    // console.debug("Player: ", player);
-    // console.debug("Loot: ", loot);
-    // console.debug("Source: ", source);
     
     const allUsers = await message?.guild?.members.fetch();
     const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(player.toLocaleLowerCase()));
 
-    // console.debug("Possible user: ", possibleUser);
-    
     if (!possibleUser) {
         console.error("No possible user found: ", possibleUser);
         return;
     }
 
-    if (loot.length === 0) {
+    if (!loot.length) {
         console.error("No loot found: ", loot);
         return;
     }
 
-    const valid_loot: Array<{name: string; points: number; quantity: number}> = [];
-    let points_to_add = 0;
+    const validLoot = loot
+        .filter(x => x.item.toLocaleLowerCase() in pointsSheetLookup)
+        .map((itemWorthPoints): {name: string; points: number; quantity: number} => ({
+            name: itemWorthPoints.item,
+            points: parseInt(pointsSheetLookup[itemWorthPoints.item.toLocaleLowerCase()], 10),
+            quantity: itemWorthPoints.quantity
+        }));
 
-    for (let i = 0; i < loot.length; ++i) {
-        const item_name = loot[i].item.toLocaleLowerCase();
-        if (!(item_name in pointsSheetLookup)) {
-            console.warn(`${loot[i].item} (${item_name}) does not exist on the list of items that are eligible!`);
-            continue;
-        }
+    const totalPointsToAdd = validLoot.reduce((total, item) => total + (item.points * item.quantity), 0);
 
-        const points = parseInt(pointsSheetLookup[item_name]);
-
-        points_to_add += points * loot[i].quantity;
-        valid_loot.push({
-            name: loot[i].item,
-            points: points,
-            quantity: loot[i].quantity
-        });
-    }
-
-    if (valid_loot.length === 0) {
-        console.error("No items are worth points: ", valid_loot);
+    if (validLoot.length === 0) {
+        console.error("No items are worth points: ", validLoot);
         return;
     }
 
     const db_user = await getUser(possibleUser.id);
-    // const current_points = db_user?.points;
+
     const new_points = await modifyPoints(
         db_user,
-        points_to_add,
+        totalPointsToAdd,
         PointsAction.ADD,
         message.author.id,
         PointType.AUTOMATED,
@@ -242,15 +225,14 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     );
 
     if (new_points === null) {
-        console.error("Could not modify points: ", valid_loot, db_user, new_points);
+        console.error("Could not modify points: ", validLoot, db_user, new_points);
         return;
     }
 
-    // console.debug("Modified points: ", new_points);
     await modifyNicknamePoints(new_points, possibleUser);
 
     let formattedConfirmationString = '';
-    valid_loot.forEach((x) => {
+    validLoot.forEach((x) => {
         formattedConfirmationString += `**${x.quantity} x ${x.name}** is **${x.points * x.quantity} points**. <@${possibleUser.id}> now has **${new_points} points**\n`;
     });
 
