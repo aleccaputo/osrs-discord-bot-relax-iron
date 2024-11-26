@@ -148,6 +148,100 @@ export const reactWithBasePoints = async (message: Message) => {
     await message.react(NumberEmojis.TEN);
 };
 
+export const processNonembedDinkPost = async (message: Message, pointsSheetLookup: Record<string, string>) => {
+    // Handle submissions that are not embeded
+    console.debug(message.content);
+
+    if (message.channel.type !== ChannelType.GuildText) {
+        console.error("The message was not posted in the correct channel: ", message.channel.type);
+        return;
+    }
+
+    const matches = message.content.match(/\*\*([\s\S]*?)\*\*/g);
+    console.debug("Matches: ", matches);
+
+    if (matches === null) {
+        console.error("No bold text found in the message content: ", message.content);
+        return;
+    }
+
+    const pieces = matches.map(part => part.replace(/\*/g, '')).filter(part => (part.length > 0 && !part.includes('*')));
+    console.debug("Pieces: ", pieces);
+
+    if (pieces.length === 1 && message.content.includes("** just got a pet!")) {
+        // Add "1 x " & " ()" so it matches the expected input later
+        pieces[1] = "1 x Pet ()";
+        // Could add a lookup here to get the source of the pet
+        // The "Pet" section of dink does not have the %SOURCE% parameter available
+        pieces[2] = "unknown";
+    } else if (pieces.length !== 3) {
+        console.error("The message did not return 3 pieces: ", pieces);
+        return;
+    }
+
+    const player = pieces[0];
+    const loot = pieces[1].split("\n").map(piece => ({
+        'item': piece.substring(piece.indexOf(" ", 2) + 1, piece.lastIndexOf(" ")),
+        'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
+    }));
+    
+    const allUsers = await message?.guild?.members.fetch();
+    const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(player.toLocaleLowerCase()));
+
+    if (!possibleUser) {
+        console.error("No possible user found: ", possibleUser);
+        return;
+    }
+
+    if (!loot.length) {
+        console.error("No loot found: ", loot);
+        return;
+    }
+
+    const validLoot = loot
+        .filter(x => x.item.toLocaleLowerCase() in pointsSheetLookup)
+        .map((itemWorthPoints): {name: string; points: number; quantity: number} => ({
+            name: itemWorthPoints.item,
+            points: parseInt(pointsSheetLookup[itemWorthPoints.item.toLocaleLowerCase()], 10),
+            quantity: itemWorthPoints.quantity
+        }));
+
+    const totalPointsToAdd = validLoot.reduce((total, item) => total + (item.points * item.quantity), 0);
+
+    if (validLoot.length === 0) {
+        console.error("No items are worth points: ", validLoot);
+        return;
+    }
+
+    const db_user = await getUser(possibleUser.id);
+
+    const new_points = await modifyPoints(
+        db_user,
+        totalPointsToAdd,
+        PointsAction.ADD,
+        message.author.id,
+        PointType.AUTOMATED,
+        message.id
+    );
+
+    if (new_points === null) {
+        console.error("Could not modify points: ", validLoot, db_user, new_points);
+        return;
+    }
+
+    await modifyNicknamePoints(new_points, possibleUser);
+
+    let formattedConfirmationString = '';
+    validLoot.forEach((x) => {
+        formattedConfirmationString += `**${x.quantity} x ${x.name}** is **${x.points * x.quantity} points**. <@${possibleUser.id}> now has **${new_points} points**\n`;
+    });
+
+    await message.channel.send(
+        formattedConfirmationString ||
+            `new points: ${new_points}, but for some reason i can't tell you the formatted string...`
+    );
+}
+
 /**
  * picks apart an embed from the Dink bot, looks up the number of points, and then gives them to the user
  * @param message the Discord.Message that was sent and contains the embed

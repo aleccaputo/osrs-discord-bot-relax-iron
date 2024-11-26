@@ -15,6 +15,7 @@ import {
     extractMessageInformationAndProcessPoints,
     PointsAction,
     processDinkPost,
+    processNonembedDinkPost,
     reactWithBasePoints
 } from './services/DropSubmissionService';
 import path from 'path';
@@ -72,8 +73,8 @@ dotenv.config();
         schedulePointsSheetRefresh();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
-
         // console.log(pointsSheetLookup);
+        
         await client.login(process.env.TOKEN);
         await connect();
 
@@ -145,8 +146,16 @@ dotenv.config();
                         }
                     }
                 } else {
-                    console.log(message.content);
-                    console.log(`No message content for embed: ${message}`);
+                    try {
+                        await processNonembedDinkPost(message, pointsSheetLookup);
+                    } catch (e) {
+                        if (e instanceof ItemNotFoundException) {
+                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                await debugChannel.send(e.message);
+                            }
+                        }
+                    }
                 }
                 // handle clan application in private channel
             } else {
