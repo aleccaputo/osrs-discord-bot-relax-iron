@@ -11,13 +11,18 @@ import { ApplicationQuestions } from './services/constants/application-questions
 import { createApplicationChannel, sendQuestions } from './services/ApplicationService';
 import { formatDiscordUserTag, parseServerCommand } from './services/MessageHelpers';
 import { connect } from './services/DataService';
-import { extractMessageInformationAndProcessPoints, PointsAction, reactWithBasePoints } from './services/DropSubmissionService';
+import {
+    extractMessageInformationAndProcessPoints,
+    PointsAction,
+    processDinkPost,
+    processNonembedDinkPost,
+    reactWithBasePoints
+} from './services/DropSubmissionService';
 import path from 'path';
 import fs from 'fs';
 import { fetchPointsData } from './services/GoogleApiService';
-import { getUser, modifyNicknamePoints, modifyPoints } from './services/UserService';
-import { PointType } from './models/PointAudit';
 import { schedule } from 'node-cron';
+import { ItemNotFoundException } from './exceptions/ItemNotFoundException';
 
 dotenv.config();
 
@@ -68,12 +73,13 @@ dotenv.config();
         schedulePointsSheetRefresh();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
-
         // console.log(pointsSheetLookup);
+        
         await client.login(process.env.TOKEN);
         await connect();
 
         client.once('ready', async () => {
+            // schedule cronjobs
             const server = client.guilds.cache.find((guild) => guild.id === serverId);
             await server?.members.fetch();
             console.log('ready');
@@ -108,7 +114,7 @@ dotenv.config();
                 return;
             }
 
-            // handle forwarding drop submissions to private channel
+            // handle forwarding drop submissions to private channel for manual point assignment
             if (
                 (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID ||
                     message.channel.id === process.env.HIGH_VALUE_PUBLIC_SUBMISSIONS_CHANNEL_ID) &&
@@ -127,69 +133,31 @@ dotenv.config();
                 message.channel.id === process.env.DISCORD_WEBHOOK_DROPS_CHANNEL_ID &&
                 message.author.id === process.env.DISCORD_WEBHOOK_DROPS_USER_ID
             ) {
-                // TODO abstract this to a service
+                // handle webhook automated points
                 if (message.embeds[0]) {
-                    const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
-                    const embed = message.embeds[0];
-                    const embedDescription = embed.description;
-                    const item =
-                        embedDescription?.trim() == 'Just got a pet.' ||
-                        embedDescription?.trim() == "Would've gotten a pet, but already has it."
-                            ? 'pet'
-                            : embed.description?.match(/\[(.*?)\]/);
-                    const user = embed.author?.name;
-                    if (user) {
-                        // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
-                        const allUsers = await message?.guild?.members.fetch();
-                        const possibleUser = allUsers?.find((x) =>
-                            (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`)
-                        );
-                        if (item && possibleUser) {
-                            if (message.channel.type === ChannelType.GuildText) {
-                                const strippedMatchItemName = item === 'pet' ? item : item[0].replace(/\[|\]/g, '').toLocaleLowerCase();
-                                // fuzzy match
-                                // TODO idk if this is right
-                                // const foundItemPointValue = pointsEntries.find(([key]) => key.includes(strippedMatchItemName))?.[1];
-                                const foundItemPointValue = pointsSheetLookup[strippedMatchItemName];
-                                if (foundItemPointValue) {
-                                    const dbUser = await getUser(possibleUser.id);
-                                    const newPoints = await modifyPoints(
-                                        dbUser,
-                                        parseInt(foundItemPointValue, 10),
-                                        PointsAction.ADD,
-                                        message.author.id,
-                                        PointType.AUTOMATED,
-                                        message.id
-                                    );
-                                    if (newPoints) {
-                                        await modifyNicknamePoints(newPoints, possibleUser);
-                                        await message.channel.send(
-                                            `${strippedMatchItemName} is ${foundItemPointValue} points. <@${possibleUser.id}> now has ${newPoints} points.`
-                                        );
-                                    }
-                                } else {
-                                    console.info(`No item matching ${strippedMatchItemName}`);
-                                    if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
-                                        await debugChannel.send(
-                                            `No item matching ${strippedMatchItemName}. Points not given to ${formatDiscordUserTag(
-                                                possibleUser.id
-                                            )}. Please manually check ${message.url}`
-                                        );
-                                    }
-                                }
-                            }
-                        } else {
-                            if (debugChannel && debugChannel?.type === ChannelType.GuildText) {
-                                await debugChannel.send(`No user found in discord matching in game name: ${user}.`);
+                    try {
+                        await processDinkPost(message, pointsSheetLookup);
+                    } catch (e) {
+                        if (e instanceof ItemNotFoundException) {
+                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                await debugChannel.send(e.message);
                             }
                         }
-                    } else {
-                        console.error('no user found on embed');
                     }
                 } else {
-                    console.log(message.content);
-                    console.log(`No message content for embed: ${message}`);
+                    try {
+                        await processNonembedDinkPost(message, pointsSheetLookup);
+                    } catch (e) {
+                        if (e instanceof ItemNotFoundException) {
+                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                await debugChannel.send(e.message);
+                            }
+                        }
+                    }
                 }
+                // handle clan application in private channel
             } else {
                 // TODO, can i make this a slash command
                 if (message.channel.type === ChannelType.GuildText && message.channel.topic === 'application') {
@@ -215,8 +183,8 @@ dotenv.config();
             if (user.id === client.user?.id) {
                 return;
             }
+            // handle emoji reactions for manual point processing
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
-                console.log('am am about to process');
                 const server = client.guilds.cache.find((guild) => guild.id === serverId);
                 await extractMessageInformationAndProcessPoints(
                     reaction,
@@ -228,6 +196,7 @@ dotenv.config();
                 );
                 console.log('am am about to process');
             }
+            // handle creating the private application message when new users click the check in the welcome channel
             if (reaction.message.channel.id === process.env.INTRO_CHANNEL_ID) {
                 const emoji = '✅';
                 if (reaction.emoji.name === emoji) {
@@ -254,6 +223,7 @@ dotenv.config();
             if (user.id === client.user?.id) {
                 return;
             }
+            // if a reaction is removed for manual points, make sure to subtract those points from the user
             if (reaction.message.channel.id === process.env.PRIVATE_SUBMISSIONS_CHANNEL_ID) {
                 const server = client.guilds.cache.find((guild) => guild.id === serverId);
                 await extractMessageInformationAndProcessPoints(
@@ -267,6 +237,7 @@ dotenv.config();
 
         client.on('guildMemberRemove', async (member) => {
             if (process.env.REPORTING_CHANNEL_ID) {
+                // inform moderators when a member leaves the server and when their nickname in the server was
                 const discordUser = await client.users.fetch(member.id);
                 const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID);
                 if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
@@ -284,6 +255,7 @@ dotenv.config();
             }
         });
 
+        // handle all slash commands (logic in ./commands/
         client.on(Events.InteractionCreate, async (interaction) => {
             if (!interaction.isChatInputCommand()) return;
             const command = interaction.client.commands.get(interaction.commandName);
