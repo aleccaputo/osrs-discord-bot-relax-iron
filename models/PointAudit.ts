@@ -3,7 +3,8 @@ import { Schema, Document, model, Model } from 'mongoose';
 export enum PointType {
     MANUAL = 'MANUAL',
     REACTION = 'REACTION',
-    AUTOMATED = 'AUTOMATED'
+    AUTOMATED = 'AUTOMATED',
+    COMPETITION = 'COMPETITION'
 }
 
 export interface IPointAudit extends Document {

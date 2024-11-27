@@ -1,6 +1,6 @@
 import User, { IUser } from '../models/User';
 import dayjs from 'dayjs';
-import { GuildMember } from 'discord.js';
+import { Collection, GuildMember } from 'discord.js';
 import { PointsAction } from './DropSubmissionService';
 import { UserExistsException } from '../exceptions/UserExistsException';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
@@ -66,3 +66,19 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
         }
     }
 };
+
+export const getUserByDiscordNickname = async (guildMembers: Collection<string, GuildMember>, nickname: string | null) => {
+    if (!nickname) {
+        return null;
+    }
+
+    const possibleUser = guildMembers?.find((x) =>
+        (x.nickname ?? '').toLocaleLowerCase().startsWith(`${nickname.toLocaleLowerCase()}`)
+    );
+
+    if (!possibleUser) {
+        return null;
+    }
+
+    return getUser(possibleUser.id);
+}

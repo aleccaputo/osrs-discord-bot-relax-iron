@@ -1,4 +1,9 @@
 import fetch from 'node-fetch';
+import {
+    WOMClient
+} from "@wise-old-man/utils";
+
+const womClient = new WOMClient();
 
 export const addMemberToWiseOldMan = async (inGameName: string): Promise<boolean | null> => {
     if (!process.env.WISE_OLD_MAN_GROUP_ID || !process.env.WISE_OLD_MAN_VERIFICATION_CODE) {
@@ -28,4 +33,16 @@ export const addMemberToWiseOldMan = async (inGameName: string): Promise<boolean
         console.error(e);
         return false;
     }
+};
+
+export const getGroupCompetitions = async () => {
+    if (!process.env.WISE_OLD_MAN_GROUP_ID) {
+        return null;
+    }
+
+    return await womClient.groups.getGroupCompetitions(parseInt(process.env.WISE_OLD_MAN_GROUP_ID, 10));
+};
+
+export const getCompetitionById = async (id: number) => {
+    return womClient.competitions.getCompetitionDetails(id);
 };

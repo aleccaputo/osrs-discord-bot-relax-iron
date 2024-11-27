@@ -24,6 +24,7 @@
         "typescript": "^5.0.0"
     },
     "dependencies": {
+        "@wise-old-man/utils": "^3.3.6",
         "dayjs": "^1.10.5",
         "discord.js": "^14.15.3",
         "dotenv": "^10.0.0",
