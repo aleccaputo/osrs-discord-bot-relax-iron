@@ -2,7 +2,7 @@ import { getCompetitionById, getGroupCompetitions } from './WiseOldManService';
 import { getUserByDiscordNickname } from './UserService';
 import { Guild } from 'discord.js';
 
-export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild) => {
+export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild, threshold: number) => {
     const competitions = await getGroupCompetitions();
     const now = new Date();
     
@@ -24,15 +24,15 @@ export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild) => 
 
     const recentEndedCompetition = sortedCompetitions[0];
 
-    return getCompParticipantsSorted(guild, recentEndedCompetition.id);
+    return getCompParticipantsSorted(guild, recentEndedCompetition.id, threshold);
 };
 
 
-export const getCompParticipantsSorted = async (guild: Guild, competitionId: number) => {
+export const getCompParticipantsSorted = async (guild: Guild, competitionId: number, threshold: number) => {
     const fullCompDetails = await getCompetitionById(competitionId);
     console.warn(fullCompDetails);
     const sortedGainedPlayers = fullCompDetails.participations
-        //.filter(x => x.progress.gained > 0)
+        .filter(x => x.progress.gained > threshold)
         .sort((a, b) => b.progress.gained - a.progress.gained)
 
     const guildMembers = await guild.members.fetch();
