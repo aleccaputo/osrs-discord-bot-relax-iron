@@ -2,7 +2,7 @@ import { getCompetitionById, getGroupCompetitions } from './WiseOldManService';
 import { getUserByDiscordNickname } from './UserService';
 import { Guild } from 'discord.js';
 
-export const getRecentEndedCompetitionWithTopPlayers = async (guild: Guild) => {
+export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild) => {
     const competitions = await getGroupCompetitions();
     const now = new Date();
     
@@ -24,22 +24,22 @@ export const getRecentEndedCompetitionWithTopPlayers = async (guild: Guild) => {
 
     const recentEndedCompetition = sortedCompetitions[0];
 
-    return getTopThreePlayersForCompetitionById(guild, recentEndedCompetition.id);
+    return getCompParticipantsSorted(guild, recentEndedCompetition.id);
 };
 
 
-export const getTopThreePlayersForCompetitionById = async (guild: Guild, competitionId: number) => {
+export const getCompParticipantsSorted = async (guild: Guild, competitionId: number) => {
     const fullCompDetails = await getCompetitionById(competitionId);
     console.warn(fullCompDetails);
-    const topPlayers = fullCompDetails.participations
+    const sortedGainedPlayers = fullCompDetails.participations
+        //.filter(x => x.progress.gained > 0)
         .sort((a, b) => b.progress.gained - a.progress.gained)
-        .slice(0, 3);
 
     const guildMembers = await guild.members.fetch();
-    const [first, second, third] = await Promise.all(topPlayers.map(x => getUserByDiscordNickname(guildMembers, x.player.displayName)));
+    const users = await Promise.all(sortedGainedPlayers.map(x => getUserByDiscordNickname(guildMembers, x.player.displayName)));
 
     return {
         competition: fullCompDetails,
-        topPlayers: [first, second, third]
+        sortedGainedPlayers: users
     };
 }

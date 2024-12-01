@@ -23,3 +23,5 @@ export const parseServerCommand = (content: string): IServerCommand => {
 export const formatDiscordUserTag = (id: string) => `<@${id}>`;
 
 export const stripDiscordCharactersFromId = (idString: string) => idString.replace(/[^0-9]/g, '');
+
+export const splitMessage = (message: string, chunkSize = 2000) => message.match(new RegExp(`.{1,${chunkSize}}`, 'g'));
