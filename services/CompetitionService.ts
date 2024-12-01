@@ -1,7 +1,18 @@
 import { getCompetitionById, getGroupCompetitions } from './WiseOldManService';
-import { getUserByDiscordNickname } from './UserService';
-import { Guild } from 'discord.js';
+import { getUserByDiscordNickname, modifyNicknamePoints, modifyPoints } from './UserService';
+import { Guild, Interaction } from 'discord.js';
+import { PointsAction } from './DropSubmissionService';
+import { PointType } from '../models/PointAudit';
+import { formatDiscordUserTag } from './MessageHelpers';
+import { CompetitionDetails } from '@wise-old-man/utils';
+import { IUser } from '../models/User';
+import { ObjectId } from 'mongoose';
+import { IRewardCompWinnersParameters } from '../commands/rewardcompwinners';
 
+interface IPlayersAndCompetition {
+    competition: CompetitionDetails;
+    sortedGainedPlayers: ((IUser & { _id: ObjectId }) | null)[]
+}
 export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild, threshold: number) => {
     const competitions = await getGroupCompetitions();
     const now = new Date();
@@ -41,5 +52,45 @@ export const getCompParticipantsSorted = async (guild: Guild, competitionId: num
     return {
         competition: fullCompDetails,
         sortedGainedPlayers: users
-    };
+    } as IPlayersAndCompetition;
+}
+
+export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null, parameters: IRewardCompWinnersParameters, interaction: Interaction) => {
+    const {firstPlacePoints, secondPlacePoints, thirdPlacePoints, participantPoints} = parameters;
+    return comp?.sortedGainedPlayers.map(async (x, idx) => {
+        if (!x) {
+            return 'Error: User not found in DB';
+        }
+
+        const member = await interaction?.guild?.members.fetch(x.discordId);
+
+        if (!member) {
+            return 'Error: User not found in discord';
+        }
+
+        let newPoints: number | null;
+        let pointsAdded: number | null;
+
+        switch (idx) {
+            case 0:
+                newPoints = await modifyPoints(x, parameters.firstPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                pointsAdded = firstPlacePoints;
+                break;
+            case 1:
+                newPoints = await modifyPoints(x, secondPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                pointsAdded = secondPlacePoints;
+                break;
+            case 2:
+                newPoints = await modifyPoints(x, thirdPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                pointsAdded = thirdPlacePoints;
+                break;
+            default:
+                newPoints = await modifyPoints(x, participantPoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                pointsAdded = participantPoints;
+                break;
+        }
+        await modifyNicknamePoints(newPoints ?? 0, member)
+
+        return `${formatDiscordUserTag(x.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
+    }) ?? [];
 }
