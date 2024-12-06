@@ -4,10 +4,7 @@ import {
     getCompParticipantsSorted,
     createWinnersResponseMessage
 } from '../services/CompetitionService';
-import { modifyNicknamePoints, modifyPoints } from '../services/UserService';
-import { PointsAction } from '../services/DropSubmissionService';
-import { PointType } from '../models/PointAudit';
-import { formatDiscordUserTag, splitMessage } from '../services/MessageHelpers';
+import { splitMessage } from '../services/MessageHelpers';
 import { isModRank } from '../utilities';
 
 export interface IRewardCompWinnersParameters {
@@ -23,12 +20,12 @@ export const command = {
     data: new SlashCommandBuilder()
         .setName('rewardcompwinners')
         .setDescription('Reward the winners of a competition')
+        .addIntegerOption((o) => o.setName('id').setDescription('the id of the competition in WOM').setRequired(true))
         .addIntegerOption((o) => o.setName('firstpoints').setDescription('points to give to first place').setRequired(true))
         .addIntegerOption((o) => o.setName('secondpoints').setDescription('points to give to second place').setRequired(true))
         .addIntegerOption((o) => o.setName('thirdpoints').setDescription('points to give to third place').setRequired(true))
         .addIntegerOption((o) => o.setName('participantpoints').setDescription('points to give to everyone else that participated').setRequired(true))
-        .addIntegerOption((o) => o.setName('threshold').setDescription('value threshold for XP or KC. Make sure you know the competition. Defaults to > 0.').setRequired(false))
-        .addIntegerOption((o) => o.setName('id').setDescription('the id of the competition in WOM').setRequired(false)),
+        .addIntegerOption((o) => o.setName('threshold').setDescription('value threshold for XP or KC. Make sure you know the competition. Defaults to > 0.').setRequired(false)),
     async execute(interaction: ChatInputCommandInteraction) {
         const compId = interaction.options.getInteger('id');
         const firstPlacePoints = interaction.options.getInteger('firstpoints') ?? 0;
@@ -61,9 +58,12 @@ export const command = {
         if (!parameters.firstPlacePoints || !parameters.secondPlacePoints || !parameters.thirdPlacePoints || !parameters.participantPoints) {
             await interaction.editReply({ content: 'Error: 1st, 2nd, 3rd, and participant points must be specified' });
         }
-        const comp = compId
+
+/*        const comp = compId
             ? await getCompParticipantsSorted(interaction.guild, parameters.id!, parameters.threshold)
-            : await getRecentEndedCompetitionSortedAndGained(interaction.guild, parameters.threshold);
+            : await getRecentEndedCompetitionSortedAndGained(interaction.guild, parameters.threshold);*/
+
+        const comp = await getCompParticipantsSorted(interaction.guild, parameters.id!, parameters.threshold);
 
         await interaction.editReply(`Please wait while I calculate points for ${comp?.competition.title} (Id: ${comp?.competition.id}) in the background...`);
 
