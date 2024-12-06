@@ -1,6 +1,6 @@
 import User, { IUser } from '../models/User';
 import dayjs from 'dayjs';
-import { GuildMember } from 'discord.js';
+import { Collection, DiscordAPIError, GuildMember } from 'discord.js';
 import { PointsAction } from './DropSubmissionService';
 import { UserExistsException } from '../exceptions/UserExistsException';
 import { NicknameLengthException } from '../exceptions/NicknameLengthException';
@@ -61,8 +61,34 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
             if (nickname.length > 32) {
                 throw new NicknameLengthException('Nickname is more than 32 characters');
             } else {
-                return serverMember.setNickname(newNickname);
+                try {
+                    return await serverMember.setNickname(newNickname);
+                } catch (e) {
+                    // check for permissions issue, if so it's because i'm trying to modify the nickname of a rank i can't. this is fine.
+                    if (e instanceof DiscordAPIError) {
+                        if (e.code === 50013) {
+                            return serverMember;
+                        }
+                    }
+                    throw e;
+                }
             }
         }
     }
 };
+
+export const getUserByDiscordNickname = async (guildMembers: Collection<string, GuildMember>, nickname: string | null) => {
+    if (!nickname) {
+        return null;
+    }
+
+    const possibleUser = guildMembers?.find((x) =>
+        (x.nickname ?? '').toLocaleLowerCase().startsWith(`${nickname.toLocaleLowerCase()}`)
+    );
+
+    if (!possibleUser) {
+        return null;
+    }
+
+    return getUser(possibleUser.id);
+}
