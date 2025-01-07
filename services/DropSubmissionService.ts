@@ -320,10 +320,12 @@ export const processDinkPost = async (message: Message, pointsSheetLookup: Recor
                 }
             }
         } else {
+            await message.delete();
             console.log(`No user found in discord matching in game name: ${user}.`);
             throw new ItemNotFoundException(`No user found in discord matching in game name: ${user}.`);
         }
     } else {
+        await message.delete();
         console.error('no user found on embed');
         throw new ItemNotFoundException('no user found on embed');
     }
