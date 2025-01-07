@@ -161,6 +161,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     console.debug("Matches: ", matches);
 
     if (matches === null) {
+        await message.delete();
         console.error("No bold text found in the message content: ", message.content);
         return;
     }
@@ -175,6 +176,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         // The "Pet" section of dink does not have the %SOURCE% parameter available
         pieces[2] = "unknown";
     } else if (pieces.length !== 3) {
+        await message.delete();
         console.error("The message did not return 3 pieces: ", pieces);
         return;
     }
@@ -194,6 +196,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }
 
     if (!loot.length) {
+        await message.delete();
         console.error("No loot found: ", loot);
         return;
     }
@@ -259,6 +262,11 @@ export const processDinkPost = async (message: Message, pointsSheetLookup: Recor
                   ?.match(/\[(.*?)\]/g)
                   ?.map((str) => str.slice(1, -1))
                   .slice(0, -1); // removes the []. splice removes the item source
+    if (!item) {
+        await message.delete();
+        return;
+    }
+
     const user = embed.author?.name;
     if (user) {
         // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
