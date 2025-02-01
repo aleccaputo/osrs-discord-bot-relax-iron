@@ -43,7 +43,7 @@ export const getCompParticipantsSorted = async (guild: Guild, competitionId: num
     const fullCompDetails = await getCompetitionById(competitionId);
     console.warn(fullCompDetails);
     const sortedGainedPlayers = fullCompDetails.participations
-        .filter(x => x.progress.gained > threshold)
+        .filter(x => x.progress.gained >= threshold)
         .sort((a, b) => b.progress.gained - a.progress.gained)
 
     const guildMembers = await guild.members.fetch();
