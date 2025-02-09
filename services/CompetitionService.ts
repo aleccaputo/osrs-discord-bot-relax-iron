@@ -11,8 +11,9 @@ import { IRewardCompWinnersParameters } from '../commands/rewardcompwinners';
 
 interface IPlayersAndCompetition {
     competition: CompetitionDetails;
-    sortedGainedPlayers: ((IUser & { _id: ObjectId }) | null)[]
+    sortedGainedPlayers: {user: (IUser & {_id: ObjectId}) | null, displayName: string}[]
 }
+
 export const getRecentEndedCompetitionSortedAndGained = async (guild: Guild, threshold: number) => {
     const competitions = await getGroupCompetitions();
     const now = new Date();
@@ -47,22 +48,28 @@ export const getCompParticipantsSorted = async (guild: Guild, competitionId: num
         .sort((a, b) => b.progress.gained - a.progress.gained)
 
     const guildMembers = await guild.members.fetch();
-    const users = await Promise.all(sortedGainedPlayers.map(x => getUserByDiscordNickname(guildMembers, x.player.displayName)));
+    const usersAndDisplay = await Promise.all(sortedGainedPlayers.map(async x => {
+        const user = await getUserByDiscordNickname(guildMembers, x.player.displayName);
+        return {
+            user,
+            displayName: x.player.displayName
+        }
+    }));
 
     return {
         competition: fullCompDetails,
-        sortedGainedPlayers: users
+        sortedGainedPlayers: usersAndDisplay
     } as IPlayersAndCompetition;
 }
 
 export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null, parameters: IRewardCompWinnersParameters, interaction: Interaction) => {
     const {firstPlacePoints, secondPlacePoints, thirdPlacePoints, participantPoints} = parameters;
     return comp?.sortedGainedPlayers.map(async (x, idx) => {
-        if (!x) {
-            return 'Error: User not found in DB';
+        if (!x.user) {
+            return `Error: User with in game name ${x.displayName} not found in DB`;
         }
 
-        const member = await interaction?.guild?.members.fetch(x.discordId);
+        const member = await interaction?.guild?.members.fetch(x.user.discordId);
 
         if (!member) {
             return 'Error: User not found in discord';
@@ -73,24 +80,24 @@ export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null
 
         switch (idx) {
             case 0:
-                newPoints = await modifyPoints(x, parameters.firstPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, parameters.firstPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
                 pointsAdded = firstPlacePoints;
                 break;
             case 1:
-                newPoints = await modifyPoints(x, secondPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, secondPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
                 pointsAdded = secondPlacePoints;
                 break;
             case 2:
-                newPoints = await modifyPoints(x, thirdPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, thirdPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
                 pointsAdded = thirdPlacePoints;
                 break;
             default:
-                newPoints = await modifyPoints(x, participantPoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, participantPoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
                 pointsAdded = participantPoints;
                 break;
         }
         await modifyNicknamePoints(newPoints ?? 0, member)
 
-        return `${formatDiscordUserTag(x.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
+        return `${formatDiscordUserTag(x.user.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
     }) ?? [];
 }
