@@ -23,6 +23,7 @@ import fs from 'fs';
 import { fetchPointsData } from './services/GoogleApiService';
 import { schedule } from 'node-cron';
 import { ItemNotFoundException } from './exceptions/ItemNotFoundException';
+import { BlacklistRecordExistsException } from './exceptions/BlacklistRecordExistsException';
 
 dotenv.config();
 
@@ -113,7 +114,6 @@ dotenv.config();
             if (!server) {
                 return;
             }
-
             // handle forwarding drop submissions to private channel for manual point assignment
             if (
                 (message.channel.id === process.env.PUBLIC_SUBMISSIONS_CHANNEL_ID ||
@@ -134,26 +134,38 @@ dotenv.config();
                 message.author.id === process.env.DISCORD_WEBHOOK_DROPS_USER_ID
             ) {
                 // handle webhook automated points
-                if (message.embeds[0]) {
-                    try {
-                        await processDinkPost(message, pointsSheetLookup);
-                    } catch (e) {
-                        if (e instanceof ItemNotFoundException) {
-                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
-                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
-                                await debugChannel.send(e.message);
+                // TODO way too much duplication here and in the processing functions
+                try {
+                    if (message.embeds[0]) {
+                        try {
+                            await processDinkPost(message, pointsSheetLookup);
+                        } catch (e) {
+                            if (e instanceof ItemNotFoundException) {
+                                const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                                if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                    await debugChannel.send(e.message);
+                                }
                             }
+                            throw e;
+                        }
+                    } else {
+                        try {
+                            await processNonembedDinkPost(message, pointsSheetLookup);
+                        } catch (e) {
+                            if (e instanceof ItemNotFoundException) {
+                                const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
+                                if (debugChannel && debugChannel.type === ChannelType.GuildText) {
+                                    await debugChannel.send(e.message);
+                                }
+                            }
+                            throw e;
                         }
                     }
-                } else {
-                    try {
-                        await processNonembedDinkPost(message, pointsSheetLookup);
-                    } catch (e) {
-                        if (e instanceof ItemNotFoundException) {
-                            const debugChannel = client.channels.cache.get(process.env.RARE_DROP_DEBUG_DUMP_CHANNEL_ID ?? '');
-                            if (debugChannel && debugChannel.type === ChannelType.GuildText) {
-                                await debugChannel.send(e.message);
-                            }
+                } catch (e) {
+                    if (e instanceof BlacklistRecordExistsException) {
+                        const reportingChannel = client.channels.cache.get(process.env.REPORTING_CHANNEL_ID ?? '');
+                        if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
+                            await reportingChannel.send(e.message);
                         }
                     }
                 }

@@ -4,6 +4,8 @@ import { NicknameLengthException } from '../exceptions/NicknameLengthException';
 import { PointType } from '../models/PointAudit';
 import { formatDiscordUserTag } from './MessageHelpers';
 import { ItemNotFoundException } from '../exceptions/ItemNotFoundException';
+import { isUserBlacklisted } from './BlacklistService';
+import { BlacklistRecordExistsException } from '../exceptions/BlacklistRecordExistsException';
 
 const NumberEmojis = {
     ONE: '1️⃣',
@@ -149,7 +151,6 @@ export const reactWithBasePoints = async (message: Message) => {
 };
 
 export const processNonembedDinkPost = async (message: Message, pointsSheetLookup: Record<string, string>) => {
-    // Handle submissions that are not embeded
     console.debug(message.content);
 
     if (message.channel.type !== ChannelType.GuildText) {
@@ -182,6 +183,10 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     }
 
     const player = pieces[0];
+
+    // throw is the user is point blacklisted
+    await validateBlacklist(message, player);
+
     const loot = pieces[1].split("\n").map(piece => ({
         'item': piece.substring(piece.indexOf(" ", 2) + 1, piece.lastIndexOf(" ")),
         'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
@@ -269,6 +274,8 @@ export const processDinkPost = async (message: Message, pointsSheetLookup: Recor
 
     const user = embed.author?.name;
     if (user) {
+        // throw is user is point blacklisted
+        await validateBlacklist(message, user);
         // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
         const allUsers = await message?.guild?.members.fetch();
         const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`));
@@ -328,5 +335,14 @@ export const processDinkPost = async (message: Message, pointsSheetLookup: Recor
         await message.delete();
         console.error('no user found on embed');
         throw new ItemNotFoundException('no user found on embed');
+    }
+};
+
+const validateBlacklist = async (message: Message, name: string) => {
+    const blacklisted = await isUserBlacklisted(name);
+    if (blacklisted) {
+        await message.delete();
+        console.info(`User ${name} is blacklisted. Deleted message ${message.id}.`);
+        throw new BlacklistRecordExistsException(`User ${name} is blacklisted. Deleted message ${message.id}.`)
     }
 };
