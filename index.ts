@@ -62,7 +62,7 @@ dotenv.config();
         }
 
         let pointsSheet = await fetchPointsData();
-        console.log("initial point sheet: ", pointsSheet);
+        console.log(`initial point sheet: \n ${pointsSheet}`);
 
         // fetch the points sheet once a day at 1am UTC to avoid having to manually restart the server when sheet changes
         const schedulePointsSheetRefresh = () => {
@@ -81,9 +81,9 @@ dotenv.config();
         console.log("logging into client")
         await client.login(process.env.TOKEN);
         console.log("logged into client")
-        console.log("connecting to client")
+        console.log("connecting to db")
         await connect();
-        console.log("client connected")
+        console.log("db connected")
 
         client.once('ready', async () => {
             console.log('ready');
