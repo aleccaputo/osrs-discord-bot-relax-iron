@@ -62,12 +62,14 @@ dotenv.config();
         }
 
         let pointsSheet = await fetchPointsData();
+        console.log("initial point sheet: ", pointsSheet);
 
         // fetch the points sheet once a day at 1am UTC to avoid having to manually restart the server when sheet changes
         const schedulePointsSheetRefresh = () => {
             schedule('0 1 * * *', async () => {
                 console.log('fetching new points sheet updates.');
                 pointsSheet = await fetchPointsData();
+                console.log("new point sheet ", pointsSheet);
             });
         };
 
@@ -75,15 +77,20 @@ dotenv.config();
 
         const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
         // console.log(pointsSheetLookup);
-        
+
+        console.log("logging into client")
         await client.login(process.env.TOKEN);
+        console.log("logged into client")
+        console.log("connecting to client")
         await connect();
+        console.log("client connected")
 
         client.once('ready', async () => {
+            console.log('ready');
             // schedule cronjobs
             const server = client.guilds.cache.find((guild) => guild.id === serverId);
             await server?.members.fetch();
-            console.log('ready');
+            console.log('found server and members');
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
