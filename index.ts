@@ -62,6 +62,7 @@ dotenv.config();
         }
 
         let pointsSheet = await fetchPointsData();
+        let pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
         console.log(`initial point sheet: \n ${pointsSheet}`);
 
         // fetch the points sheet once a day at 1am UTC to avoid having to manually restart the server when sheet changes
@@ -69,13 +70,16 @@ dotenv.config();
             schedule('0 1 * * *', async () => {
                 console.log('fetching new points sheet updates.');
                 pointsSheet = await fetchPointsData();
-                console.log("new point sheet ", pointsSheet);
+                pointsSheetLookup = Object.fromEntries(pointsSheet ?? []);
+                console.log("new point sheet: ");
+                console.log(pointsSheet?.toString())
+                console.log("new point sheet lookup: ");
+                console.log(pointsSheetLookup);
             });
         };
 
         schedulePointsSheetRefresh();
 
-        const pointsSheetLookup: Record<string, string> = Object.fromEntries(pointsSheet ?? []);
         // console.log(pointsSheetLookup);
 
         console.log("logging into client")
