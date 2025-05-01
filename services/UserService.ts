@@ -58,7 +58,7 @@ export const modifyNicknamePoints = async (newPoints: number, serverMember: Guil
             const newNickname = containsBracketsRe.test(nickname)
                 ? nickname.replace(/\[(.+?)\]/g, `[${newPoints}]`)
                 : `${nickname} [${newPoints}]`;
-            if (nickname.length > 32) {
+            if (newNickname.length > 32) {
                 throw new NicknameLengthException('Nickname is more than 32 characters');
             } else {
                 try {

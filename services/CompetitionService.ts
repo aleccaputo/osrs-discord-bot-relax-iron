@@ -8,6 +8,7 @@ import { CompetitionDetails } from '@wise-old-man/utils';
 import { IUser } from '../models/User';
 import { ObjectId } from 'mongoose';
 import { IRewardCompWinnersParameters } from '../commands/rewardcompwinners';
+import { NicknameLengthException } from '../exceptions/NicknameLengthException';
 
 interface IPlayersAndCompetition {
     competition: CompetitionDetails;
@@ -96,8 +97,16 @@ export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null
                 pointsAdded = participantPoints;
                 break;
         }
-        await modifyNicknamePoints(newPoints ?? 0, member)
 
-        return `${formatDiscordUserTag(x.user.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
+        try {
+            await modifyNicknamePoints(newPoints ?? 0, member)
+
+            return `${formatDiscordUserTag(x.user.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
+        } catch (e) {
+            if (e instanceof NicknameLengthException) {
+                return `WARNING! Nickname too long for user, unable to modify nickname but: ${formatDiscordUserTag(x.user.discordId)} has been given ${pointsAdded} points and now has ${newPoints} points.`;
+            }
+            throw e;
+        }
     }) ?? [];
 }
