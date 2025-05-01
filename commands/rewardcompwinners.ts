@@ -67,7 +67,9 @@ export const command = {
 
         await interaction.editReply(`Please wait while I calculate points for ${comp?.competition.title} (Id: ${comp?.competition.id}) in the background...`);
 
-        const winnerResponsesPromises = createWinnersResponseMessage(comp, parameters, interaction);
+        const replyMessage = await interaction.fetchReply();
+
+        const winnerResponsesPromises = createWinnersResponseMessage(comp, parameters, interaction, replyMessage.id);
 
         const winningText = await Promise.all(winnerResponsesPromises);
 

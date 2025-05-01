@@ -63,7 +63,7 @@ export const getCompParticipantsSorted = async (guild: Guild, competitionId: num
     } as IPlayersAndCompetition;
 }
 
-export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null, parameters: IRewardCompWinnersParameters, interaction: Interaction) => {
+export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null, parameters: IRewardCompWinnersParameters, interaction: Interaction, messageId: string) => {
     const {firstPlacePoints, secondPlacePoints, thirdPlacePoints, participantPoints} = parameters;
     return comp?.sortedGainedPlayers.map(async (x, idx) => {
         if (!x.user) {
@@ -81,19 +81,19 @@ export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null
 
         switch (idx) {
             case 0:
-                newPoints = await modifyPoints(x.user, parameters.firstPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, parameters.firstPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, messageId);
                 pointsAdded = firstPlacePoints;
                 break;
             case 1:
-                newPoints = await modifyPoints(x.user, secondPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, secondPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, messageId);
                 pointsAdded = secondPlacePoints;
                 break;
             case 2:
-                newPoints = await modifyPoints(x.user, thirdPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, thirdPlacePoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, messageId);
                 pointsAdded = thirdPlacePoints;
                 break;
             default:
-                newPoints = await modifyPoints(x.user, participantPoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, interaction.id);
+                newPoints = await modifyPoints(x.user, participantPoints, PointsAction.ADD, interaction.user.id, PointType.COMPETITION, messageId);
                 pointsAdded = participantPoints;
                 break;
         }

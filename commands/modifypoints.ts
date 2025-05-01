@@ -36,6 +36,7 @@ export const command = {
                     action === '+' ? PointsAction.ADD : PointsAction.SUBTRACT,
                     (interaction.member as GuildMember).id,
                     PointType.MANUAL,
+                    // TODO this isnt actually a message id. see rewardcompwinners for details
                     interaction.id
                 );
                 if (newPoints) {
