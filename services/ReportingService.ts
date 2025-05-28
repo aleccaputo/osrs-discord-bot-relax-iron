@@ -208,37 +208,40 @@ export const initializeUserCsvExtract = async (client: Client, reportingChannelI
     const filename = `${year}_${month + 1}_${day}_users_extract.csv`;
     console.log('generating' + filename);
 
-    const writeStream = fs.createWriteStream(`./${filename}`, { flags: 'w+' });
     try {
         const allInternalUsers = await User.find({});
-        const stream = fastcsv.format({ headers: true });
-        stream.pipe(writeStream);
-        allInternalUsers.map((user) => stream.write(user.toJSON()));
+        const csvData = allInternalUsers.map(user => user.toJSON());
+        // Write all data at once instead of streaming individual records
+        await new Promise((resolve, reject) => {
+            const stream = fastcsv.write(csvData, { headers: true });
+            const writeStream = fs.createWriteStream(`./${filename}`);
 
-        writeStream.on('close', async () => {
-            if (server) {
-                const reportingChannel = client.channels.cache.get(reportingChannelId);
-                if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
-                    try {
-                        await reportingChannel.send({
-                            content: 'Users backup csv generated.',
-                            files: [
-                                {
-                                    attachment: `./${filename}`,
-                                    name: filename
-                                }
-                            ]
-                        });
-                    } catch (e) {
-                        console.log(e);
-                    }
+            stream.pipe(writeStream);
+
+            writeStream.on('finish', resolve);
+            writeStream.on('error', reject);
+        });
+
+        if (server) {
+            const reportingChannel = client.channels.cache.get(reportingChannelId);
+            if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
+                try {
+                    await reportingChannel.send({
+                        content: 'Users backup csv generated.',
+                        files: [
+                            {
+                                attachment: `./${filename}`,
+                                name: filename
+                            }
+                        ]
+                    });
+                } catch (e) {
+                    console.log(e);
                 }
             }
-        });
-        writeStream.end();
+        }
     } catch (e) {
         console.error('Error creating csv backup for' + filename);
-        writeStream.end();
     }
 };
 

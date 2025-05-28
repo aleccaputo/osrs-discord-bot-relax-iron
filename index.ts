@@ -2,6 +2,7 @@ import * as Discord from 'discord.js';
 import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
+    initializeUserCsvExtract,
     scheduleNicknameIdCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
@@ -96,7 +97,8 @@ dotenv.config();
             await server?.members.fetch();
             console.log('found server and members');
             try {
-                scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
+                // scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
+                await initializeUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersNotInClan(
                     client,
