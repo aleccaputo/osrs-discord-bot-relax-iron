@@ -4,7 +4,8 @@ export enum PointType {
     MANUAL = 'MANUAL',
     REACTION = 'REACTION',
     AUTOMATED = 'AUTOMATED',
-    COMPETITION = 'COMPETITION'
+    COMPETITION = 'COMPETITION',
+    ONE_TIME = 'ONE_TIME'
 }
 
 export interface IPointAudit extends Document {
@@ -44,6 +45,8 @@ const PointAuditSchema = new Schema<IPointAudit>({
         required: true
     }
 });
+
+PointAuditSchema.index({ destinationDiscordId: 1, createdAt: 1, type: 1 });
 
 const PointAudit: Model<IPointAudit> = model('PointAudit', PointAuditSchema, 'PointAudit');
 

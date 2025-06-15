@@ -30,7 +30,8 @@ export const getLeaderboardAuditRecordsForTimePeriod = async (startDate: string,
         createdAt: {
             $gte: startDate,
             $lte: endDate
-        }
+        },
+        type: { $ne: PointType.ONE_TIME }
     });
 
     // Reduce the results to sum points by destinationDiscordId

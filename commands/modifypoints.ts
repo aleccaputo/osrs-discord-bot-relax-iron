@@ -12,14 +12,28 @@ export const command = {
         .setDescription('add or subtract points for a user')
         .addUserOption((o) => o.setName('user').setDescription('the user to modify'))
         .addStringOption((o) =>
-            o.setName('action').setDescription('add or subtract').addChoices({ name: 'add', value: '+' }, { name: 'subtract', value: '-' })
+            o.setName('action').setDescription('add or subtract').addChoices(
+                {
+                    name: 'add',
+                    value: '+'
+                },
+                { name: 'subtract', value: '-' }
+            )
         )
-        .addIntegerOption((o) => o.setName('points').setDescription('number of points to add or subtract')),
+        .addIntegerOption((o) => o.setName('points').setDescription('number of points to add or subtract'))
+        .addStringOption((o) =>
+            o
+                .setName('type')
+                .setDescription('type to classify these points. Defaults to manual')
+                .addChoices({ name: 'ONE_TIME', value: 'ONE_TIME' })
+                .setRequired(false)
+        ),
     async execute(interaction: ChatInputCommandInteraction) {
         // why do i have to cast this. obnoxious
         const discordUser = interaction.options.getMember('user') as GuildMember | null;
         const action = interaction.options.getString('action');
         const points = interaction.options.getInteger('points');
+        const type = interaction.options.getString('type');
         const isMod = isModRank(interaction.member as GuildMember);
 
         if (!isMod) {
@@ -35,7 +49,7 @@ export const command = {
                     points,
                     action === '+' ? PointsAction.ADD : PointsAction.SUBTRACT,
                     (interaction.member as GuildMember).id,
-                    PointType.MANUAL,
+                    type ? PointType[type as keyof typeof PointType] : PointType.MANUAL,
                     // TODO this isnt actually a message id. see rewardcompwinners for details
                     interaction.id
                 );
