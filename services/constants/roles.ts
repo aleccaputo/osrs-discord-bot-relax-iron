@@ -139,6 +139,6 @@ export const PointsRoles: Array<PointsRole> = [
         id: process.env.RANK_EIGHT_ID ?? '14', // this is not a typo, the rank just moved to a later role
         minPoints: 5000,
         maxPoints: 100000000,
-        order: 8
+        order: 13
     }
 ];
