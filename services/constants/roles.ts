@@ -1,4 +1,5 @@
 import * as dotenv from 'dotenv';
+
 dotenv.config();
 
 interface Role {
@@ -47,6 +48,7 @@ export interface PointsRole extends Role {
     minPoints: number;
     maxPoints: number;
 }
+
 export const PointsRoles: Array<PointsRole> = [
     {
         name: 'Sapphire',
@@ -98,9 +100,44 @@ export const PointsRoles: Array<PointsRole> = [
         order: 7
     },
     {
-        name: 'Wrath',
-        id: process.env.RANK_EIGHT_ID ?? '9',
+        name: 'Saradominist',
+        id: process.env.RANK_TEN_ID ?? '9',
         minPoints: 1000,
+        maxPoints: 1500,
+        order: 8
+    },
+    {
+        name: 'Guthixian',
+        id: process.env.RANK_ELEVEN_ID ?? '10',
+        minPoints: 1500,
+        maxPoints: 2000,
+        order: 9
+    },
+    {
+        name: 'Zamorakian',
+        id: process.env.RANK_TWELVE_ID ?? '11',
+        minPoints: 2000,
+        maxPoints: 3000,
+        order: 10
+    },
+    {
+        name: 'Zarosian',
+        id: process.env.RANK_THIRTEEN_ID ?? '12',
+        minPoints: 3000,
+        maxPoints: 4000,
+        order: 11
+    },
+    {
+        name: 'Soul',
+        id: process.env.RANK_FOURTEEN_ID ?? '13',
+        minPoints: 4000,
+        maxPoints: 5000,
+        order: 12
+    },
+    {
+        name: 'Wrath',
+        id: process.env.RANK_EIGHT_ID ?? '14', // this is not a typo, the rank just moved to a later role
+        minPoints: 5000,
         maxPoints: 100000000,
         order: 8
     }
