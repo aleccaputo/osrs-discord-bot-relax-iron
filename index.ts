@@ -2,6 +2,7 @@ import * as Discord from 'discord.js';
 import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
+    initializeReportMembersEligibleForPointsBasedRankUp,
     scheduleNicknameIdCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
@@ -71,9 +72,9 @@ dotenv.config();
                 console.log('fetching new points sheet updates.');
                 pointsSheet = await fetchPointsData();
                 pointsSheetLookup = Object.fromEntries(pointsSheet ?? []);
-                console.log("new point sheet: ");
-                console.log(pointsSheet?.toString())
-                console.log("new point sheet lookup: ");
+                console.log('new point sheet: ');
+                console.log(pointsSheet?.toString());
+                console.log('new point sheet lookup: ');
                 console.log(pointsSheetLookup);
             });
         };
@@ -82,12 +83,12 @@ dotenv.config();
 
         // console.log(pointsSheetLookup);
 
-        console.log("logging into client")
+        console.log('logging into client');
         await client.login(process.env.TOKEN);
-        console.log("logged into client")
-        console.log("connecting to db")
+        console.log('logged into client');
+        console.log('connecting to db');
         await connect();
-        console.log("db connected")
+        console.log('db connected');
 
         client.once('ready', async () => {
             console.log('ready');
@@ -98,6 +99,13 @@ dotenv.config();
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
+                scheduleReportMembersNotInClan(
+                    client,
+                    process.env.REPORTING_CHANNEL_ID ?? '',
+                    serverId ?? '',
+                    process.env.NOT_IN_CLAN_ROLE_ID ?? ''
+                );
+                await initializeReportMembersEligibleForPointsBasedRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersNotInClan(
                     client,
                     process.env.REPORTING_CHANNEL_ID ?? '',
