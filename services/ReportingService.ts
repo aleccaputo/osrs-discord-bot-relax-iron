@@ -43,7 +43,7 @@ const initializeReportMembersEligibleForTimeBasedRankUp = async (client: Client,
     if (server) {
         const today = dayjs();
         // dont get from cache, we need an up to date list
-        const currentMembers = await server.members.fetch();
+        const currentMembers = server.members.cache;
         const membersDueForRank = currentMembers
             .filter((x) => x.joinedAt !== null)
             .map((member) => {
@@ -89,7 +89,7 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
     }
     const server = client.guilds.cache.find((guild) => guild.id === serverId);
     if (server) {
-        const currentMembers = await server.members.fetch();
+        const currentMembers = server.members.cache;
         const allInternalUsers = await User.find({});
         // filter only verified and they must already have a rank
         const rankUps = [...currentMembers.values()]
@@ -131,7 +131,7 @@ const initializeReportMembersNotInClan = async (client: Client, reportingChannel
     console.log('Kicking off member not in clan cron...');
     const server = client.guilds.cache.find((guild) => guild.id === serverId);
     if (server) {
-        const currentMembers = await server.members.fetch();
+        const currentMembers = server.members.cache;
         const membersWithNotInClanRole = [...currentMembers.filter((x) => x.roles.cache.some((y) => y.id === notInClanId)).values()];
         if (membersWithNotInClanRole.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
@@ -162,7 +162,7 @@ export const initializeDiscordIdToNicknameCsvExtract = async (client: Client, re
     const writeStream = fs.createWriteStream(`./${filename}`, { flags: 'w+' });
     try {
         if (server) {
-            const currentMembers = await server.members.fetch();
+            const currentMembers = server.members.cache;
             const stream = fastcsv.format({ headers: true });
             stream.pipe(writeStream);
             currentMembers.map((member) =>

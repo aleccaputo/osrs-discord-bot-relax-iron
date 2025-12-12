@@ -192,7 +192,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         'quantity': parseInt(piece.substring(0, piece.indexOf(" ", 1)))
     }));
     
-    const allUsers = await message?.guild?.members.fetch();
+    const allUsers = message?.guild?.members.cache;
     const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(player.toLocaleLowerCase()));
 
     if (!possibleUser) {
@@ -277,7 +277,7 @@ export const processDinkPost = async (message: Message, pointsSheetLookup: Recor
         // throw is user is point blacklisted
         await validateBlacklist(message, user);
         // check that it matches the nickname scheme in the server to only ever match one ie Nickname [
-        const allUsers = await message?.guild?.members.fetch();
+        const allUsers = message?.guild?.members.cache;
         const possibleUser = allUsers?.find((x) => (x.nickname ?? '').toLocaleLowerCase().startsWith(`${user.toLocaleLowerCase()}`));
         // if i have an item and i found a user in the discord server
         if (item && possibleUser) {

@@ -14,7 +14,7 @@ export const createAllTimePointsLeaderboard = async (guild?: Guild) => {
     const usersWhoAreStillInServer = await getUsersStillInServer(guild);
     const topTenUsers = usersWhoAreStillInServer.slice(0, 20);
 
-    const allMembers = await guild.members.fetch();
+    const allMembers = guild.members.cache;
 
     const formatted = topTenUsers.map(
         (x, idx) =>
@@ -45,7 +45,7 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
         leaderboardForTimePeriodPromise
     ]);
 
-    const allMembers = await guild.members.fetch();
+    const allMembers = guild.members.cache;
 
     const usersInServerLookup = usersWhoAreStillInServer.reduce(
         (acc, obj) => {
@@ -78,7 +78,7 @@ export const createTimePointsLeaderboard = async (startDate: string, endDate: st
 const getUsersStillInServer = async (guild: Guild) => {
     // db always tracks user but we only want to display users still in the discord server
     const users = await getUsersByPointsDesc();
-    const members = await guild.members.fetch();
+    const members = guild.members.cache;
     return users.filter(async (x) => {
         try {
             const guildMember = members.find((y) => y.id === x.discordId);

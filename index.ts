@@ -91,10 +91,24 @@ dotenv.config();
 
         client.once('ready', async () => {
             console.log('ready');
-            // schedule cronjobs
-            const server = client.guilds.cache.find((guild) => guild.id === serverId);
-            await server?.members.fetch();
-            console.log('found server and members');
+            console.log('fetching all members for the first time on startup....');
+            const guild = client.guilds.cache.find((x) => x.id === serverId);
+
+            if (!guild) {
+                console.error(`Guild with ID ${serverId} not found! Exiting...`);
+                return;
+            }
+
+            // doing this here as this will fill the cache. The GuildMembers intent will automatically keep the cache up to date.
+            // this call is critical to the overall functionality of the app.
+            try {
+                await guild.members.fetch();
+                console.log(`Successfully cached ${guild.members.cache.size} members`);
+            } catch (error) {
+                console.error('Failed to fetch members, cache could not be populated. Exiting...:', error);
+                return;
+            }
+
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');

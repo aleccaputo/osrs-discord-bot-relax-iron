@@ -48,7 +48,7 @@ export const getCompParticipantsSorted = async (guild: Guild, competitionId: num
         .filter(x => x.progress.gained >= threshold)
         .sort((a, b) => b.progress.gained - a.progress.gained)
 
-    const guildMembers = await guild.members.fetch();
+    const guildMembers = guild.members.cache;
     const usersAndDisplay = await Promise.all(sortedGainedPlayers.map(async x => {
         const user = await getUserByDiscordNickname(guildMembers, x.player.displayName);
         return {
@@ -70,7 +70,7 @@ export const createWinnersResponseMessage = (comp: IPlayersAndCompetition | null
             return `Error: User with in game name ${x.displayName} not found in DB`;
         }
 
-        const member = await interaction?.guild?.members.fetch(x.user.discordId);
+        const member = interaction?.guild?.members.cache.get(x.user.discordId);
 
         if (!member) {
             return 'Error: User not found in discord';

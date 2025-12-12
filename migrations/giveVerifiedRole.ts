@@ -25,7 +25,7 @@ dotenv.config();
 
         const server = await client.guilds.fetch(serverId ?? '');
         if (server) {
-            const allMembers = await server.members.fetch();
+            const allMembers = server.members.cache;
             for (const member of [...allMembers.values()]) {
                 // if they have at least one role, also give them verified
                 if ([...member?.roles.cache.values()].filter((x) => x.name !== '@everyone').length && process.env.VERIFIED_ROLE_ID) {
