@@ -15,14 +15,28 @@ interface IMemberDueForRank<T> {
 }
 
 const formatRankUpMessage = (members: Array<IMemberDueForRank<TimeRole | PointsRole> | undefined>) => {
-    let message = 'We have some users ready to rank up!';
+    const messages: string[] = [];
+    let currentMessage = 'We have some users ready to rank up!';
+    
     members.forEach((member) => {
         if (member) {
-            message += `\n<@${member.userId}> -> ${member.nextRank.name}`;
+            const line = `\n<@${member.userId}> -> ${member.nextRank.name}`;
+            
+            if ((currentMessage + line).length > 2000) {
+                messages.push(currentMessage);
+                currentMessage = line.trimStart();
+            } else {
+                currentMessage += line;
+            }
         }
     });
-    console.log(message);
-    return message;
+    
+    if (currentMessage.length > 0) {
+        messages.push(currentMessage);
+    }
+    
+    console.log(`Split rank up message into ${messages.length} message(s)`);
+    return messages;
 };
 
 const formatNotInClanMessage = (members: Array<GuildMember>) => {
@@ -35,52 +49,6 @@ const formatNotInClanMessage = (members: Array<GuildMember>) => {
     message += '\nOnce they are in the clan, please remove this role';
     console.log(message);
     return message;
-};
-
-const initializeReportMembersEligibleForTimeBasedRankUp = async (client: Client, reportingChannelId: string, serverId: string) => {
-    console.log('Kicking off member rankup cron...');
-    const server = client.guilds.cache.find((guild) => guild.id === serverId);
-    if (server) {
-        const today = dayjs();
-        // dont get from cache, we need an up to date list
-        const currentMembers = server.members.cache;
-        const membersDueForRank = currentMembers
-            .filter((x) => x.joinedAt !== null)
-            .map((member) => {
-                // hard casting date since its not picking up on the filter
-                const joinedDate = dayjs(member.joinedAt as Date);
-                const monthsInServer = today.diff(joinedDate, 'month');
-                const memberRoleIds = member.roles.cache.map((role) => role.id);
-                const currentRanks = TimeRoles.filter((x) => memberRoleIds.includes(x.id));
-                if (currentRanks && currentRanks.length) {
-                    const highestRank = currentRanks.reduce((prev, current) => (prev.order > current.order ? prev : current));
-                    if (monthsInServer >= highestRank.maxMonths) {
-                        const nextRank = TimeRoles.find((x) => x.order === highestRank.order + 1);
-                        // we can rank this user up!
-                        if (nextRank) {
-                            return {
-                                userId: member.id,
-                                nextRank: nextRank
-                            } as IMemberDueForRank<TimeRole>;
-                        }
-                    }
-                }
-            })
-            .filter((x) => x !== undefined);
-        console.log(membersDueForRank);
-        if (membersDueForRank && membersDueForRank.length) {
-            const reportingChannel = client.channels.cache.get(reportingChannelId);
-            if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
-                const message = formatRankUpMessage(membersDueForRank);
-                try {
-                    await reportingChannel.send(message);
-                } catch (e) {
-                    console.log('Error sending rank up report to channel');
-                    console.log(e);
-                }
-            }
-        }
-    }
 };
 
 export const initializeReportMembersEligibleForPointsBasedRankUp = async (client: Client, reportingChannelId: string, serverId: string) => {
@@ -112,12 +80,15 @@ export const initializeReportMembersEligibleForPointsBasedRankUp = async (client
                 }
             })
             .filter((x) => x !== undefined && x.userId !== client.user?.id);
+
         if (rankUps && rankUps.length) {
             const reportingChannel = client.channels.cache.get(reportingChannelId);
             if (reportingChannel && reportingChannel.type === ChannelType.GuildText) {
-                const message = formatRankUpMessage(rankUps);
+                const messages = formatRankUpMessage(rankUps);
                 try {
-                    await reportingChannel.send(message);
+                    for (const message of messages) {
+                        await reportingChannel.send(message);
+                    }
                 } catch (e) {
                     console.log('Error sending rank up report to channel');
                     console.log(e);

@@ -2,6 +2,7 @@ import * as Discord from 'discord.js';
 import { ChannelType, Collection, Events, GatewayIntentBits, Partials, User } from 'discord.js';
 import * as dotenv from 'dotenv';
 import {
+    initializeReportMembersEligibleForPointsBasedRankUp,
     scheduleNicknameIdCsvExtract,
     scheduleReportMembersEligibleForPointsRankUp,
     scheduleReportMembersNotInClan,
@@ -112,6 +113,7 @@ dotenv.config();
             try {
                 scheduleUserCsvExtract(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersEligibleForPointsRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
+                initializeReportMembersEligibleForPointsBasedRankUp(client, process.env.REPORTING_CHANNEL_ID ?? '', serverId ?? '');
                 scheduleReportMembersNotInClan(
                     client,
                     process.env.REPORTING_CHANNEL_ID ?? '',
