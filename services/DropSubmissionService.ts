@@ -170,7 +170,7 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     const pieces = matches.map(part => part.replace(/\*/g, '')).filter(part => (part.length > 0 && !part.includes('*')));
     console.debug("Pieces: ", pieces);
 
-    if (pieces.length === 1 && message.content.includes("** just got a pet!")) {
+    if (pieces.length === 2 && message.content.includes("** just got a pet! **")) {
         // Add "1 x " & " ()" so it matches the expected input later
         pieces[1] = "1 x Pet ()";
         // Could add a lookup here to get the source of the pet
