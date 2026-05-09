@@ -171,10 +171,9 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
     console.debug("Pieces: ", pieces);
 
     if (pieces.length === 2 && message.content.includes("** just got a pet! **")) {
-        // Add "1 x " & " ()" so it matches the expected input later
-        pieces[1] = "1 x Pet ()";
-        // Could add a lookup here to get the source of the pet
-        // The "Pet" section of dink does not have the %SOURCE% parameter available
+        // Reshape into "<qty> x <item> (<source>)" so the pet name flows through the same
+        // pointsSheetLookup as any other dropped item. Dink's pet template has no %SOURCE%.
+        pieces[1] = `1 x ${pieces[1]} ()`;
         pieces[2] = "unknown";
     } else if (pieces.length !== 3) {
         await message.delete();
