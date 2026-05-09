@@ -176,6 +176,14 @@ export const processNonembedDinkPost = async (message: Message, pointsSheetLooku
         // Could add a lookup here to get the source of the pet
         // The "Pet" section of dink does not have the %SOURCE% parameter available
         pieces[2] = "unknown";
+    } else if (
+        pieces.length === 3 &&
+        message.content.includes("** just got: **") &&
+        message.content.includes("** from **")
+    ) {
+        // New Dink pet template: **User** just got: **Pet** from **Source**
+        // Normalize to the "1 x Pet ()" shape the lookup expects; pieces[2] already holds the source.
+        pieces[1] = "1 x Pet ()";
     } else if (pieces.length !== 3) {
         await message.delete();
         console.error("The message did not return 3 pieces: ", pieces);
